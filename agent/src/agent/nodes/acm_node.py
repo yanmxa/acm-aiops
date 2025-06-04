@@ -17,7 +17,7 @@ from copilotkit.langgraph import copilotkit_customize_config, copilotkit_emit_st
 
 # LLM imports
 from langchain_openai import ChatOpenAI
-from langchain_core.messages import SystemMessage
+from langchain_core.messages import SystemMessage, HumanMessage
 from langchain_mcp_adapters.client import MultiServerMCPClient
 from langgraph.prebuilt import ToolNode, tools_condition
 
@@ -42,12 +42,10 @@ async def ChatNode(state: AgentState, config: RunnableConfig):
     system_prompt = """
     You are a Red Hat Advanced Cluster Management assistant that can perform task.
     """
-    print(f"========================== acm node start: {config["metadata"]["thread_id"]}=====================")
+    print(f"========================== acm node start: {config["metadata"]["thread_id"]}===================== \n")
     print(state)
-    
-    state["update"] = "acm node thinking"
-    state["actions"] = []
-    await copilotkit_emit_state(config, state)
+    # state["actions"] = []
+    # await copilotkit_emit_state(config, state)
     
     # Define the model
     model = ChatOpenAI(model="gpt-4o-mini")
@@ -55,6 +53,12 @@ async def ChatNode(state: AgentState, config: RunnableConfig):
     # Define config for the model
     if config is None:
         config = RunnableConfig(recursion_limit=25)
+    
+    # clean up the previous actions state to prevent rerender again
+    last_message = state["messages"][-1]
+    if isinstance(last_message, HumanMessage):
+      state["actions"] = []
+      await copilotkit_emit_state(config, state)
     
     if not tool_data.init:
         tools = await client.get_tools()

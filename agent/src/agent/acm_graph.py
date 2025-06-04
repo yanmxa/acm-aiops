@@ -43,7 +43,7 @@ def route_tools(
         return "tool_node"
     return "end_flow"
 
-async def start_flow(state: Dict[str, Any], config: RunnableConfig):
+async def start_flow(state: AgentState, config: RunnableConfig):
     """
     This is the entry point for the flow.
     """
@@ -58,14 +58,16 @@ async def start_flow(state: Dict[str, Any], config: RunnableConfig):
         }
     )
     
-async def end_flow(state: Dict[str, Any], config: RunnableConfig):
+async def end_flow(state: AgentState, config: RunnableConfig):
     """
     This is the entry point for the flow.
     """
-    if "steps" not in state:
-        state["steps"] = []
-    
+   
+    # state["actions"] = []
+    # await copilotkit_emit_state(config, state)  
+    print("+++++++++++++++++++flow end+++++++++++++++++++++") 
     await copilotkit_exit(config)
+    # state["actions"] = []
     return Command(
         goto=END,
         update={

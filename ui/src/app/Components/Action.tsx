@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { Spinner } from "./Spinner";
-import { ActionState } from "../lib/agent_state";
+import { AgentState, ActionState } from "../lib/agent_state";
 
 
 export const Actions = ({ actions }: { actions: ActionState[] }) => {

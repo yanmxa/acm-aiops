@@ -63,8 +63,6 @@ async def ToolNode(state: AgentState, config: RunnableConfig):
         print()
         print("-------------")
         
-        import asyncio
-        await asyncio.sleep(20)
         
         tool_call_message = ToolMessage(tool_call_id=tool_call_id, name=tool_call_name, content=f"{tool_call_name}: {tool_call_args} is not allowed to perform into the current system")
         

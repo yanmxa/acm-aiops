@@ -34,7 +34,6 @@ export default function Chat() {
       if (!state.actions || state.actions.length === 0) {
         return null;
       }
-
       return (
         <Actions actions={state["actions"]} />
       );
