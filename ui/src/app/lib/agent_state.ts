@@ -1,4 +1,5 @@
 
+
 export type ActionState = {
   status: "pending" | "completed";  // default: "pending"
   approval: "y" | "n";              // default: "y"
@@ -10,5 +11,9 @@ export type ActionState = {
 export interface AgentState {
   hubKubeconfig: string;
   update: string;
+  progress: {
+    label: string;
+    value: number;
+  };
   actions: ActionState[];
 }

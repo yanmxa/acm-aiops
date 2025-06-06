@@ -3,14 +3,93 @@
 import React, { useState } from "react";
 import { Spinner } from "./Spinner";
 import { AgentState, ActionState } from "../lib/agent_state";
+import { RenderMessageProps } from "@copilotkit/react-ui";
+
+// Note: no result can get from the render message
+export function CustomRenderActionExecutionMessage(props: RenderMessageProps) {
+
+  const [expanded, setExpanded] = useState(true);
+
+  const baseClass = props.inProgress
+    ? "text-xl font-bold text-slate-700"
+    : "text-sm font-bold text-slate-700";
+
+  const actionMessage: any = props.message
+
+  const parsedArgs = (() => {
+    try {
+      return typeof actionMessage.arguments === "object"
+        ? JSON.stringify(actionMessage.arguments, null, 2)
+        : JSON.stringify(JSON.parse(actionMessage.arguments), null, 2);
+    } catch {
+      return String(actionMessage.arguments);
+    }
+  })();
+
+  let output = ""
+  if (props.actionResult) {
+    output = (() => {
+    try {
+      return typeof props.actionResult === "object"
+        ? JSON.stringify(props.actionResult, null, 2)
+        : JSON.stringify(JSON.parse(props.actionResult), null, 2);
+    } catch {
+      return String(props.actionResult);
+    }
+  })();
+  }
+
+  return (
+    <div className="space-y-2">
+      <div
+        onClick={() => setExpanded((prev) => !prev)}
+        className={`flex items-center gap-2 cursor-pointer hover:text-blue-600 transition-colors ${baseClass}`}
+      >
+        {props.inProgress ?  
+        (
+          <Spinner />
+        ) : (
+          <span className="text-green-600">✓</span>
+        )}
+
+        <span>{String(actionMessage.name)}</span>
+        <span className="ml-auto text-xs text-slate-500">{expanded ? "▲" : "▼"}</span>
+      </div>
+
+      {expanded && (
+        <div className="space-y-2">
+          <div>
+            <h4 className="text-xs font-semibold text-gray-500 mb-1">Input:</h4>
+            <pre className="bg-white p-3 rounded-md text-xs text-left overflow-auto text-gray-800 border border-gray-200">
+              <code>{parsedArgs}</code>
+            </pre>
+          </div>
+
+          {!props.inProgress && output && (
+            <div>
+              <h4 className="text-xs font-semibold text-gray-500 mb-1">Output:</h4>
+              <pre className="bg-white p-3 rounded-md text-xs text-left overflow-auto text-gray-800 border border-gray-200">
+                <code>{output}</code>
+              </pre>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
 
 
 export const Actions = ({ actions }: { actions: ActionState[] }) => {
+  if (!actions || actions.length === 0) {
+        return null;
+  }
+
   const firstPendingIndex = actions.findIndex((s) => s.status === "pending");
 
   return (
     <div className="flex">
-      <div className="bg-gray-100 rounded-lg w-[60%] p-4 text-black space-y-4">
+      <div className="bg-gray-100 rounded-lg w-[100%] p-4 text-black space-y-4">
         {actions.map((action, index) => (
           <Action
             key={index}

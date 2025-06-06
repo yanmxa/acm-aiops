@@ -10,6 +10,10 @@ class ActionState(TypedDict):
     args: str
     output: str
     
+class Progress(TypedDict):
+    label: str
+    value: float
+    
 class AgentState(CopilotKitState):
     """
     The state of the agent.
@@ -18,7 +22,8 @@ class AgentState(CopilotKitState):
     hubKubeconfig: str = ""
     update: str = ""
     actions: List[ActionState] = []
-    
+    progress: Progress
+
 
 from dataclasses import dataclass, field
 

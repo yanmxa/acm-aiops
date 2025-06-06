@@ -12,10 +12,18 @@
     "@copilotkit/react-core": "^1.8.13",
     "@copilotkit/react-ui": "^1.8.13",
     "@copilotkit/runtime": "^1.8.13",
+    "github-markdown-css": "^5.8.1",
+    "highlight.js": "^11.11.1",
     "lucide-react": "^0.511.0",
     "next": "15.3.3",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "react-is": "^19.1.0",
+    "react-markdown": "^10.1.0",
+    "recharts": "^2.15.3",
+    "rehype-highlight": "^7.0.2",
+    "rehype-raw": "^7.0.0",
+    "remark-gfm": "^4.0.1"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
