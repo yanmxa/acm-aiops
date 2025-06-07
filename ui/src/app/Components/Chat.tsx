@@ -10,7 +10,7 @@ import "./Chat.module.css";
 import Chart from "./Chart";
 import ProgressBar  from "./Progress";
 import { AgentState } from "../lib/agent_state";
-import MarkdownRenderer from "./MarkdownRender";
+import TextMessageRender from "./TextMessageRender";
 
 export function CustomRenderAgentStateMessage(props: any) {
   const agentState: AgentState = props.message.state
@@ -74,7 +74,7 @@ export default function Chat() {
 
 
   return (
-    <div className="flex justify-center items-start h-screen w-screen border border-white pt-[2%]">
+    <div className="flex justify-center items-start h-screen w-screen border border-white pt-[1%]">
 
       {/* Welcome message that disappears when there are messages */}
       {visibleMessages.length === 0 && (
@@ -87,7 +87,7 @@ export default function Chat() {
       <div className="w-7/10 h-8/10 bg-gray-50 border border-white">
         <CopilotChat className="h-full rounded-lg"
           // RenderAgentStateMessage={CustomRenderAgentStateMessage}
-          RenderTextMessage={MarkdownRenderer}
+          RenderTextMessage={TextMessageRender}
         />
       </div>
     </div>

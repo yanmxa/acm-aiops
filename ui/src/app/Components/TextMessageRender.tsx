@@ -8,7 +8,7 @@ import "highlight.js/styles/github.css"; // GitHub code block theme
 
 import { RenderMessageProps } from "@copilotkit/react-ui";
 
-const MarkdownRenderer: React.FC<RenderMessageProps> = ({ message }: any) => {
+const TextMessageRender: React.FC<RenderMessageProps> = ({ message }: any) => {
   const { content, role } = message;
   if (!content) return null;
 
@@ -16,7 +16,7 @@ const MarkdownRenderer: React.FC<RenderMessageProps> = ({ message }: any) => {
 
   return (
     <div
-      className={`flex w-full px-4 ${
+      className={`flex w-full ${
         isUser ? "justify-end" : "justify-start"
       }`}
     >
@@ -40,4 +40,4 @@ const MarkdownRenderer: React.FC<RenderMessageProps> = ({ message }: any) => {
   );
 };
 
-export default MarkdownRenderer;
+export default TextMessageRender;
