@@ -4,6 +4,7 @@ A LangGraph implementation of the human-in-the-loop agent.
 
 import asyncio
 from typing import Dict, List, Any
+from datetime import datetime, timezone
 
 # LangGraph imports
 from langchain_core.runnables import RunnableConfig
@@ -62,9 +63,10 @@ def schedule_init():
 schedule_init()
 
 async def ChatNode(state: AgentState, config: RunnableConfig):
+    current_timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
-    system_prompt = """
-    You are a Red Hat Advanced Cluster Management assistant that can perform task.
+    system_prompt = f"""
+    You are a Red Hat Advanced Cluster Management assistant that can perform task. current time: {current_timestamp}
     """
     print(f"========================== acm node start: {config["metadata"]["thread_id"]}===================== \n")
     print(state)

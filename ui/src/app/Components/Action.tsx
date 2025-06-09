@@ -4,6 +4,8 @@ import React, { useState } from "react";
 import { Spinner } from "./Spinner";
 import { AgentState, ActionState } from "../lib/agent_state";
 import { RenderMessageProps } from "@copilotkit/react-ui";
+import { Clipboard, User, Bot, Wrench } from "lucide-react";
+import ChartOutput from "./ChartOutput";
 
 // Note: no result can get from the render message
 export function CustomRenderActionExecutionMessage(props: RenderMessageProps) {
@@ -88,8 +90,11 @@ export const Actions = ({ actions }: { actions: ActionState[] }) => {
   const firstPendingIndex = actions.findIndex((s) => s.status === "pending");
 
   return (
-    <div className="flex">
-      <div className="bg-gray-100 rounded-lg w-[100%] p-4 text-black space-y-4">
+    <div className="flex py-2">
+      <div className="mr-2 mt-3 text-gray-500">
+          <Wrench size={20} />
+      </div>
+      <div className="bg-gray-100 rounded-lg w-[90%] p-4 text-black space-y-4">
         {actions.map((action, index) => (
           <Action
             key={index}
@@ -135,6 +140,21 @@ export const Action = ({
     }
   })();
 
+  let chartOutput: any = null;
+
+  if (action.name === "prometheus") {
+    try {
+      chartOutput =
+        typeof action.output === "object"
+          ? action.output
+          : JSON.parse(action.output);
+    } catch {
+      chartOutput = null;
+    }
+    console.log("chart output: ", action.output)
+    console.log("chart output object: ", chartOutput)
+  }
+
   return (
     <div className="space-y-2">
       <div
@@ -169,6 +189,8 @@ export const Action = ({
           )}
         </div>
       )}
+      {/* ✅ Render chart only for prometheus */}
+      {action.name === "prometheus"  && chartOutput && (<ChartOutput output={chartOutput} />)}
     </div>
   );
 };
