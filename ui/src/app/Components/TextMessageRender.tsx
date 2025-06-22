@@ -30,7 +30,7 @@ const TextMessageRender: React.FC<RenderMessageProps> = ({ message }: any) => {
     >
       {/* User/Assistant Icon */}
       {!isUser && (
-        <div className="mr-2 mt-3 text-gray-500">
+        <div className="pr-2 text-gray-500">
           <Bot size={20} />
         </div>
       )}
@@ -42,7 +42,7 @@ const TextMessageRender: React.FC<RenderMessageProps> = ({ message }: any) => {
             : "text-gray-800 pb-6 shadow-sm"
         }`}
       >
-        <div className="markdown-body p-4 pt-4 pb-4" ref={markdownRef}>
+        <div className="markdown-body p-4 pb-4" ref={markdownRef}>
           <ReactMarkdown
             remarkPlugins={[remarkGfm]}
             rehypePlugins={[rehypeRaw, rehypeHighlight]}

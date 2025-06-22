@@ -1,27 +1,12 @@
 from fastapi import FastAPI
-import asyncio
-import uuid
-from typing import Dict, List, Any, Optional
 import os
 import uvicorn
-# LangGraph imports
-from langchain_core.runnables import RunnableConfig
-from langgraph.graph import StateGraph, END, START
-from langgraph.types import Command
-from langgraph.checkpoint.memory import MemorySaver
 
 # CopilotKit imports
-from copilotkit import CopilotKitState, CopilotKitSDK, LangGraphAgent
-from copilotkit.langgraph import (
-    copilotkit_customize_config
-)
-from copilotkit.langgraph import (copilotkit_exit)
+from copilotkit import  CopilotKitSDK, LangGraphAgent
 from copilotkit.integrations.fastapi import add_fastapi_endpoint
-# OpenAI imports
-from langchain_openai import ChatOpenAI
-from langchain_core.messages import SystemMessage
 
-from src.agent.acm_graph import human_in_the_loop_graph 
+from agent.graphs.router_graph import router_graph
 
 app = FastAPI()
 
@@ -29,14 +14,13 @@ sdk = CopilotKitSDK(
     agents=[
         LangGraphAgent(
             name="chat_agent",
-            description="An example for showcasing the  AGUI protocol using LangGraph.",
-            graph=human_in_the_loop_graph
+            description="An example for showcasing the  AG-UI protocol using LangGraph.",
+            graph=router_graph
         ),
     ]
 )
 
 add_fastapi_endpoint(app, sdk, "/copilotkit")
-
 
 @app.get("/")
 async def root():

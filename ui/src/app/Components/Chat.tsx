@@ -2,52 +2,71 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import "@copilotkit/react-ui/styles.css";
-import { CopilotKit, useCopilotChat, useLangGraphInterrupt,useCoAgentStateRender } from "@copilotkit/react-core";
+import { CopilotKit, useCopilotChat, useLangGraphInterrupt,useCoAgentStateRender, useCopilotAction } from "@copilotkit/react-core";
 import { CopilotChat, useCopilotChatSuggestions } from "@copilotkit/react-ui";
 import { Approve } from "./Approve";
 import { Actions } from './Action';
 import "./Chat.module.css";
 import Chart from "./ChartOutput";
 import ProgressBar  from "./Progress";
-import { AgentState } from "../lib/agent_state";
+import { AgentState, RechartParameters } from '../lib/agent_state';
 import TextMessageRender from "./TextMessageRender";
 import ChartOutput from "./ChartOutput";
-
-export function CustomRenderAgentStateMessage(props: any) {
-  const agentState: AgentState = props.message.state
-  const { actions, progress } = agentState
-  if (!actions) {
-    return null
-  }
-  return <Actions actions={actions} />
-}
-
+import { GenericAction } from "./GenericAction";
+import { RechartCollection } from "./ChartOutput";
 
 export default function Chat() {
-  useLangGraphInterrupt({
-      enabled: ({ eventValue }) => eventValue.type === 'approval',
-      render: ({ event, resolve }) => {
-      const handleAnswer = (answer: boolean) => {
-        resolve(answer.toString());  // or just return resolve(answer);
-      };
-      return (
-        <Approve
-          content={event.value.content}
-          onAnswer={handleAnswer}
-        />
-      );
-    },
+  // useLangGraphInterrupt({
+  //     enabled: ({ eventValue }) => eventValue.type === 'approval',
+  //     render: ({ event, resolve }) => {
+  //     const handleAnswer = (answer: boolean) => {
+  //       resolve(answer.toString());  // or just return resolve(answer);
+  //     };
+  //     return (
+  //       <Approve
+  //         content={event.value.content}
+  //         onAnswer={handleAnswer}
+  //       />
+  //     );
+  //   },
+  // });
+
+  // tool
+  // useCopilotAction
+  const actionNames = ["kubectl", "clusters", "connect_cluster", "prometheus"];
+
+  actionNames.forEach((actionName) => {
+    useCopilotAction({
+      name: actionName,
+      available: "disabled", // Don't allow the agent or UI to call this tool as its only for rendering
+      render: (obj) => {
+        const { status, args, name, result } = obj as any;
+        console.log("actionName", actionName, status, args, name, result);
+        return (
+          <GenericAction status={status} args={args} name={name} result={result} />
+        );
+      },
+    });
   });
 
+  useCopilotAction({
+      name: "render_recharts",
+      available: "disabled", // Don't allow the agent or UI to call this tool as its only for rendering
+      parameters: RechartParameters as any[],
+      render: (obj: any) => {
+        const { status, args, name, result } = obj as any;
+        const charts = obj?.args?.data?.charts ?? [];
+        return <RechartCollection charts={charts} />
+      },
+  });
 
+  // for the agent state
   useCoAgentStateRender<AgentState>({
     name: "chat_agent",
-    render: ({ status, state }) => {
-      const { actions, progress } = state
+    render: (agentState: any) => {
+      console.log("agentState", agentState);
       return (
         <>
-          {status === "inProgress" && progress && <ProgressBar progress={progress.value} label={progress.label} />}
-          {actions && <Actions actions={actions} />}
         </>
       );
     },
@@ -71,24 +90,6 @@ export default function Chat() {
   console.log("visibleMessages", visibleMessages)
   // console.log("action")
   // console.log("agent state", agentState)
-
-  const rechart_data = {
-        "data": [
-            {"name": "2025-06-05T00:00:00", "multiclusterhub-operator-b5df4469-wgqs5": 229.23046875, "multiclusterhub-operator-b5df4469-9j87m": 29.22265625},
-            {"name": "2025-06-05T05:00:00", "multiclusterhub-operator-b5df4469-wgqs5": 214.38671875, "multiclusterhub-operator-b5df4469-9j87m": 35.41015625},
-            {"name": "2025-06-05T10:00:00", "multiclusterhub-operator-b5df4469-wgqs5": 251.0234375, "multiclusterhub-operator-b5df4469-9j87m": 35.421875},
-            {"name": "2025-06-05T15:00:00", "multiclusterhub-operator-b5df4469-wgqs5": 195.06640625, "multiclusterhub-operator-b5df4469-9j87m": 34.34765625},
-            {"name": "2025-06-05T20:00:00", "multiclusterhub-operator-b5df4469-wgqs5": 248.08203125, "multiclusterhub-operator-b5df4469-9j87m": 35.5},
-            {"name": "2025-06-06T01:00:00", "multiclusterhub-operator-b5df4469-wgqs5": 198.421875, "multiclusterhub-operator-b5df4469-9j87m": 36.51171875},
-            {"name": "2025-06-06T06:00:00", "multiclusterhub-operator-b5df4469-wgqs5": 217.703125, "multiclusterhub-operator-b5df4469-9j87m": 35.9921875},
-            {"name": "2025-06-06T11:00:00", "multiclusterhub-operator-b5df4469-wgqs5": 290.55859375, "multiclusterhub-operator-b5df4469-9j87m": 36.8203125},
-            {"name": "2025-06-06T16:00:00", "multiclusterhub-operator-b5df4469-wgqs5": 254.40625, "multiclusterhub-operator-b5df4469-9j87m": 37.07421875},
-            {"name": "2025-06-06T21:00:00", "multiclusterhub-operator-b5df4469-wgqs5": 252.05078125, "multiclusterhub-operator-b5df4469-9j87m": 35.84375}
-        ],
-        "type": "range",
-        "unit": "MiB"
-    }
-
   return (
     <div className="flex justify-center items-start h-screen w-screen border border-white pt-[1%]">
 
@@ -104,10 +105,10 @@ export default function Chat() {
 
       <div className="w-7/10 h-8/10 bg-gray-50 border border-white">
         <CopilotChat className="h-full rounded-lg"
-          // RenderAgentStateMessage={CustomRenderAgentStateMessage}
           RenderTextMessage={TextMessageRender}
         />
       </div>
     </div>
   );
 };
+

@@ -35,3 +35,7 @@ html body .poweredBy {
   margin: 0 !important;
 }
 
+
+.react-flow__attribution {
+  display: none !important;
+}

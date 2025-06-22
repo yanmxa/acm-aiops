@@ -190,7 +190,7 @@ export const Action = ({
         </div>
       )}
       {/* ✅ Render chart only for prometheus */}
-      {action.name === "prometheus"  && chartOutput && (<ChartOutput output={chartOutput} />)}
+      {/* {action.name === "prometheus"  && chartOutput && (<ChartOutput output={chartOutput} />)} */}
     </div>
   );
 };

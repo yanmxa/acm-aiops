@@ -5,55 +5,38 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useCoAgent } from "@copilotkit/react-core";
 import { AgentState } from "../lib/agent_state";
 
-export default function Toggle() {
+export default function ModelTogglePanel() {
   const [open, setOpen] = useState(false);
-  const [kubeconfig, setKubeconfig] = useState("");
-  const [submittedKubeconfig, setSubmittedKubeconfig] = useState("");
+  const [provider, setProvider] = useState("OpenAI");
+  const [modelName, setModelName] = useState("");
+  const [apiKey, setApiKey] = useState("");
+  const [submitted, setSubmitted] = useState(false);
 
-  const panelWidth = 320;
+  const panelWidth = 340;
   const collapsedWidth = 28;
 
-  // const {
-  //   state: agentState,
-  //   setState,
-  //   run,
-  // } = useCoAgent<AgentState>({
-  //   name: "chat_agent",
-  //   initialState: {
-  //     hubKubeconfig: ""
-  //   }
-  // })
-  const {
-        state: agentState,
-        setState,
-        nodeName
-    } = useCoAgent<AgentState>({
-      name: "chat_agent",
-    })
+  const { state: agentState, setState } = useCoAgent<AgentState>({
+    name: "chat_agent",
+  });
 
-    // setup to be called when some event in the app occurs
-  const submitHubKubeconfig = () => {
-    if (submittedKubeconfig != kubeconfig) {
-      setSubmittedKubeconfig(kubeconfig)
-      agentState.hubKubeconfig = kubeconfig
-      setState(agentState)
-      console.log("setting agent hub kubeconfig", agentState.hubKubeconfig)
-    }
-    setKubeconfig(""); // Clear textarea
+  const handleSubmit = () => {
+    // agentState.modelConfig = { provider, modelName, apiKey };
+    setState(agentState);
+    setSubmitted(true);
+    // console.log("✅ Model set:", agentState.modelConfig);
   };
-  console.log("submittedKubeconfig", submittedKubeconfig)
 
   return (
     <div
-      className="fixed top-24 right-0 z-50 h-64 flex shadow-lg transition-all duration-300 ease-in-out overflow-hidden rounded-l-xl"
+      className="fixed top-24 right-0 z-50 h-[22rem] flex shadow-lg transition-all duration-300 ease-in-out overflow-hidden rounded-l-xl border-l border-gray-200"
       style={{
         width: open ? panelWidth : collapsedWidth,
-        backgroundColor: open ? "#f8f9fa" : "#e2e8f0", // light gray or muted blue-gray
+        backgroundColor: open ? "#f8f9fa" : "#e2e8f0",
       }}
     >
-      {/* Clickable Left Strip (acts like a toggle bar) */}
+      {/* Toggle Strip */}
       <div
-        className="w-7 flex items-center justify-center cursor-pointer hover:bg-gray-300 transition-colors"
+        className="w-7 flex items-center justify-center cursor-pointer hover:bg-gray-300 transition"
         onClick={() => setOpen((prev) => !prev)}
         title={open ? "Hide panel" : "Show panel"}
       >
@@ -62,31 +45,59 @@ export default function Toggle() {
         </div>
       </div>
 
-      {/* Panel Content */}
+      {/* Panel */}
       {open && (
-        <div className="p-4 w-[288px] flex flex-col justify-between text-sm">
-          <div>
-            <h2 className="text-base font-semibold mb-2 text-gray-800">
-              Submit Kubeconfig
-            </h2>
-            <textarea
-              placeholder="Paste kubeconfig here"
-              value={kubeconfig}
-              onChange={(e) => setKubeconfig(e.target.value)}
-              className="w-full h-24 border border-gray-300 rounded p-2 text-sm resize-none bg-white"
-            />
+        <div className="p-4 w-[312px] flex flex-col justify-between text-sm text-gray-800">
+          <div className="space-y-4">
+            <h2 className="text-lg font-semibold text-gray-900">Model Configuration</h2>
+
+            <div>
+              <label className="block text-xs font-medium mb-1">Model Provider</label>
+              <select
+                value={provider}
+                onChange={(e) => setProvider(e.target.value)}
+                className="w-full px-3 py-1.5 rounded border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-red-500 text-sm"
+              >
+                <option>OpenAI</option>
+                <option>Ollama</option>
+                <option>Groq</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium mb-1">Model Name</label>
+              <input
+                value={modelName}
+                onChange={(e) => setModelName(e.target.value)}
+                placeholder="e.g. gpt-4o"
+                className="w-full px-3 py-1.5 rounded border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-red-500 text-sm"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium mb-1">API Key</label>
+              <input
+                type="password"
+                value={apiKey}
+                onChange={(e) => setApiKey(e.target.value)}
+                placeholder="Enter API key"
+                className="w-full px-3 py-1.5 rounded border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-red-500 text-sm"
+              />
+            </div>
           </div>
-          <div>
+
+          <div className="mt-4">
             <button
-              className="mt-3 bg-red-600 text-white py-1.5 px-4 rounded-md hover:bg-red-700 transition"
-              onClick={() => submitHubKubeconfig()}
+              onClick={handleSubmit}
+              className="w-full bg-red-600 text-white font-medium py-2 rounded-md hover:bg-red-700 transition text-sm"
             >
-              Commit
+              Apply
             </button>
-            {submittedKubeconfig && (
-              <div className="mt-3 border-t pt-2 text-xs text-gray-600 whitespace-pre-wrap">
-                <strong>Submitted:</strong>
-                <pre className="mt-1">{submittedKubeconfig}</pre>
+
+            {submitted && (
+              <div className="mt-3 border-t pt-2 text-xs text-gray-600">
+                <div><strong>Provider:</strong> {provider}</div>
+                <div><strong>Model:</strong> {modelName}</div>
               </div>
             )}
           </div>
