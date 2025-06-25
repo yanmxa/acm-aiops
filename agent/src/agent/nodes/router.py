@@ -26,8 +26,13 @@ async def router(state: AgentState, config: RunnableConfig):
         
     model = ChatOpenAI(model="gpt-4o-mini")
     
+    # if state["update"] is None:
+    #   state["update"] = "Router: routing the query to the appropriate workflow"
+    # else:
+    #   state["update"] = f"Router: routing the query to the {state['update']}"
+    
     state["update"] = "Router: routing the query to the appropriate workflow"
-    await emit_state(config, state)
+    await emit_state(state, config)
     
     modifiedConfig = copilotkit_customize_config(
         config,
@@ -54,7 +59,7 @@ async def router(state: AgentState, config: RunnableConfig):
     logger.info(f"choose the agent: {route.agent}")
 
     state["update"] = f"Router: routing the query to the {route.agent}"
-    await emit_state(config, state)
+    await emit_state(state, config)
     
     # return Command(goto=route.agent)
     return {

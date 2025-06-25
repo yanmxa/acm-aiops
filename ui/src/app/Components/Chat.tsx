@@ -42,16 +42,16 @@ export default function Chat() {
     },
   });
 
-  // useCoAgentStateRender<AgentState>({
-  //   name: "chat_agent",
-  //   render: ({ status, state, nodeName }) => {
-  //     const update = state?.update;
-  //     console.log(status, state, nodeName)
-  //     return (
-  //       <ProgressBar label={update} status={status} />
-  //     )
-  //   },
-  // });
+  useCoAgentStateRender<AgentState>({
+    name: "chat_agent",
+    render: ({ status, state, nodeName }) => {
+      const update = state?.update;
+      console.log("update message",status, state, nodeName)
+      return (
+        <ProgressBar label={update} status={status} />
+      )
+    },
+  });
 
   const { visibleMessages } = useCopilotChat();
   

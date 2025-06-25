@@ -17,8 +17,9 @@ export const GenericAction = ({
   name,
   result,
 }: GenericActionProps) => {
-  // State for preserving the last valid result
+  // State for preserving the last valid result and label
   const [lastValidResult, setLastValidResult] = useState<string | undefined>(result);
+  const [lastValidLabel, setLastValidLabel] = useState<string>(name);
   const [isExpanded, setIsExpanded] = useState(true);
 
   // Helper function to check if a result is valid (not empty)
@@ -40,12 +41,13 @@ export const GenericAction = ({
     }
   };
 
-  // Update preserved result only when we receive a new valid result
+  // Update preserved result and label only when we receive a new valid result
   useEffect(() => {
     if (isValidResult(result)) {
       setLastValidResult(result);
+      setLastValidLabel(name);
     }
-  }, [result]);
+  }, [result, name]);
 
   // console.log(`Action "${name}":`, { status, args, result, lastValidResult });
 
@@ -63,9 +65,9 @@ export const GenericAction = ({
           <Spinner />
         )}
         
-        {/* Action Name */}
+        {/* Action Name - Use preserved label */}
         <span className="ml-1">
-          {args?.cluster && args.cluster !== "default" ? `${args.cluster}-${name}` : name}
+          {args?.cluster && args.cluster !== "default" ? `${args.cluster}-${lastValidLabel}` : lastValidLabel}
         </span>
         
         {/* Expand/Collapse Indicator */}

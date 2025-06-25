@@ -26,7 +26,7 @@ async def engineer_node(state: AgentState, config: RunnableConfig):
     try:
         
         state["update"] = "Engineer node: starting"
-        await emit_state(config, state)
+        await emit_state(state, config)
         
         allowed_tool_names = {"kubectl", "connect_cluster", "clusters"}
         tools = [tool for tool in mcp_tool_state.mcp_tools if tool.name in allowed_tool_names]
@@ -41,7 +41,7 @@ async def engineer_node(state: AgentState, config: RunnableConfig):
         logger.info(f"Ending engineer with #message {len(messages)}")
         
         state["update"] = "Engineer node: completed"
-        await emit_state(config, state)
+        await emit_state(state,config)
         
         # print the message in this session
         if len(ai_message.tool_calls) == 0:

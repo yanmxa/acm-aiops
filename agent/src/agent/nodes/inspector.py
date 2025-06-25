@@ -16,7 +16,7 @@ logger = get_logger("inspector")
     
 async def inspector_node(state: AgentState, config: RunnableConfig):
     state["update"] = "Inspector node: starting"
-    await emit_state(config, state)
+    await emit_state( state, config)
     
     logger.info(f"Starting inspector with #message {len(state['messages'])}")
 
@@ -43,7 +43,7 @@ async def inspector_node(state: AgentState, config: RunnableConfig):
     messages = state["messages"] + [ai_message]
     
     state["update"] = "Inspector node: completed"
-    await emit_state(config, state)
+    await emit_state( state,config)
     
     logger.info(f"Ending inspector with #message {len(messages)}")
 

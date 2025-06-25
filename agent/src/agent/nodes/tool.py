@@ -39,7 +39,7 @@ async def handle_tool_call(state: AgentState, config: RunnableConfig, tool_call:
     args = tool_call.get("args", {})
     
     state["update"] = f"Tool node: starting tool call {tool_call_name}"
-    await emit_state(config, state)
+    await emit_state(state, config)
 
     # Safely parse JSON string if needed
     try:
