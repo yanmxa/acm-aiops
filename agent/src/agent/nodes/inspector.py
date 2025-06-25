@@ -6,14 +6,18 @@ from pydantic import BaseModel, Field
 
 from langchain_core.messages import HumanMessage, SystemMessage, ToolMessage
 from langchain_openai import ChatOpenAI
+from langchain_core.runnables import RunnableConfig
 
-from agent.states.agent_state import AgentState
+from agent.states.agent_state import AgentState, emit_state
 from agent.states.mcp_state import mcp_tool_state
 from agent.utils.logging_config import get_logger
 
 logger = get_logger("inspector")
     
-async def inspector_node(state: AgentState):
+async def inspector_node(state: AgentState, config: RunnableConfig):
+    state["update"] = "Inspector node: starting"
+    await emit_state(config, state)
+    
     logger.info(f"Starting inspector with #message {len(state['messages'])}")
 
     system_prompt = (
@@ -37,6 +41,9 @@ async def inspector_node(state: AgentState):
     ai_message = await ChatOpenAI(model="gpt-4o-mini").bind_tools(tools).ainvoke(messages)
     
     messages = state["messages"] + [ai_message]
+    
+    state["update"] = "Inspector node: completed"
+    await emit_state(config, state)
     
     logger.info(f"Ending inspector with #message {len(messages)}")
 

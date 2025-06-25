@@ -6,7 +6,7 @@ from langchain_core.runnables import RunnableConfig
 
 from copilotkit.langgraph import copilotkit_emit_state 
 
-from agent.states.agent_state import AgentState
+from agent.states.agent_state import AgentState,emit_state
 from agent.states.mcp_state import mcp_tool_state
 from agent.utils.logging_config import get_logger
 from agent.utils.print_messages import print_messages
@@ -15,8 +15,6 @@ logger = get_logger("engineer")
 
 async def engineer_node(state: AgentState, config: RunnableConfig):
     logger.info(f"Starting engineer with #messages: {len(state["messages"])}")
-   
-    
     system_prompt = (
         "You are a Kubernetes engineer that can execute `kubectl` commands on behalf of the user. "
         "Given a natural language request, translate it into the appropriate `kubectl` command, "
@@ -26,8 +24,9 @@ async def engineer_node(state: AgentState, config: RunnableConfig):
     )
     
     try:
-        # state["update"] = "Engineer node: starting"
-        # await copilotkit_emit_state(config, state)
+        
+        state["update"] = "Engineer node: starting"
+        await emit_state(config, state)
         
         allowed_tool_names = {"kubectl", "connect_cluster", "clusters"}
         tools = [tool for tool in mcp_tool_state.mcp_tools if tool.name in allowed_tool_names]
@@ -40,6 +39,9 @@ async def engineer_node(state: AgentState, config: RunnableConfig):
 
         messages = state["messages"] + [ai_message]
         logger.info(f"Ending engineer with #message {len(messages)}")
+        
+        state["update"] = "Engineer node: completed"
+        await emit_state(config, state)
         
         # print the message in this session
         if len(ai_message.tool_calls) == 0:

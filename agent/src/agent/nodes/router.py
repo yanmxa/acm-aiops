@@ -10,7 +10,7 @@ from datetime import datetime, timezone
 from copilotkit.langgraph import copilotkit_emit_state 
 from copilotkit.langgraph import copilotkit_customize_config
 
-from agent.states.agent_state import AgentState
+from agent.states.agent_state import AgentState,emit_state
 from agent.utils.logging_config import get_logger
 
 logger = get_logger("router")
@@ -26,8 +26,8 @@ async def router(state: AgentState, config: RunnableConfig):
         
     model = ChatOpenAI(model="gpt-4o-mini")
     
-    # state["update"] = "Router: starting routing decision"
-    # await copilotkit_emit_state(config, state)
+    state["update"] = "Router: routing the query to the appropriate workflow"
+    await emit_state(config, state)
     
     modifiedConfig = copilotkit_customize_config(
         config,
@@ -52,9 +52,9 @@ async def router(state: AgentState, config: RunnableConfig):
         modifiedConfig,
     )
     logger.info(f"choose the agent: {route.agent}")
-    # state["update"] = f"Router: choose the agent {route.agent}"
-    # await copilotkit_emit_state(config, state)
 
+    state["update"] = f"Router: routing the query to the {route.agent}"
+    await emit_state(config, state)
     
     # return Command(goto=route.agent)
     return {

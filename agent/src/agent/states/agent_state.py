@@ -6,6 +6,8 @@ import os
 class AgentState(CopilotKitState):
     next_node: str
     update: str
+    # deprecated: https://github.com/CopilotKit/CopilotKit/issues/2051
+    patch_action_result: dict 
 
 async def emit_state(state: AgentState, config):
     """
