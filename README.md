@@ -14,6 +14,7 @@ It includes:
 1. **Install dependencies**
 
    ```bash
+   cd agent
    poetry install
    ```
 
@@ -23,15 +24,16 @@ It includes:
    poetry run main
    ```
 
+> **Note**: Set `OPENAI_API_KEY` in `.env`.
+
 ---
 
 ## 💬 Frontend Setup
 
-> **Note**: Set `OLLAMA_MODEL` in `.env` (see [CopilotKit#1926](https://github.com/CopilotKit/CopilotKit/issues/1926)).
-
 1. **Install dependencies**
 
    ```bash
+   cd ui
    pnpm install
    ```
 

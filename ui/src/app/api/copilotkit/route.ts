@@ -2,6 +2,7 @@ import {
   CopilotRuntime,
   OpenAIAdapter,
   ExperimentalOllamaAdapter, // ollama adapter
+  ExperimentalEmptyAdapter,
   copilotRuntimeNextJSAppRouterEndpoint,
 } from "@copilotkit/runtime";
 
@@ -9,9 +10,9 @@ import { NextRequest } from "next/server";
 
 // const serviceAdapter = new OpenAIAdapter();
 // adapter definition
-const serviceAdapter = new ExperimentalOllamaAdapter({
-  model: process.env.OLLAMA_MODEL,
-});
+// const serviceAdapter = new ExperimentalOllamaAdapter({
+//   model: process.env.OLLAMA_MODEL,
+// });
 const runtime = new CopilotRuntime({
   remoteEndpoints: [
     {
@@ -23,7 +24,7 @@ const runtime = new CopilotRuntime({
 export const POST = async (req: NextRequest) => {
   const { handleRequest } = copilotRuntimeNextJSAppRouterEndpoint({
     runtime,
-    serviceAdapter,
+    serviceAdapter: new ExperimentalEmptyAdapter(),
     endpoint: "/api/copilotkit",
   });
 

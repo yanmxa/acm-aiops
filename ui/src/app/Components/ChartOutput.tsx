@@ -160,7 +160,7 @@ export const RechartCollection: React.FC<RechartCollectionProps> = ({ charts }) 
     : [];
 
     if (validCharts.length === 0) {
-      return <p className="text-sm text-gray-400">No valid charts to display.</p>;
+      return <></>
     }
 
   return (

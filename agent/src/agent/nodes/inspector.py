@@ -38,7 +38,7 @@ async def inspector_node(state: AgentState, config: RunnableConfig):
     allowed_tool_names = {"connect_cluster", "clusters", "prometheus"}
     tools = [tool for tool in mcp_tool_state.mcp_tools if tool.name in allowed_tool_names]
     
-    ai_message = await ChatOpenAI(model="gpt-4o-mini").bind_tools(tools).ainvoke(messages)
+    ai_message = await ChatOpenAI(model="gpt-4o").bind_tools(tools).ainvoke(messages)
     
     messages = state["messages"] + [ai_message]
     

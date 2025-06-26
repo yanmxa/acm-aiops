@@ -4,9 +4,8 @@ import React from "react";
 import { SatelliteDish } from "lucide-react"; // or any spinner icon
 
 interface ProgressBarProps {
-  progress: number; // still in props if needed
   status: string;
-  label?: string;
+  label: string;
 }
 
 export default function ProgressBar({ label = "Processing", status = "complete" }: ProgressBarProps) {

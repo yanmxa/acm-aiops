@@ -24,7 +24,7 @@ export const GenericAction = ({
 
   // Helper function to check if a result is valid (not empty)
   const isValidResult = (value: string | undefined): boolean => {
-    return Boolean(value && value.trim() !== "");
+    return Boolean(value && value !== "");
   };
 
   // Helper function to format result for display
