@@ -106,6 +106,11 @@ You are a metrics analyzer specialized in multi-cluster performance analysis.
 - Choose LineChart for trends, BarChart for comparisons
 - Include relevant y_axis_keys based on metrics (cpu, memory, battery, power, etc.)
 
+
+**IMPORTANT:** 
+- If the sample metrics span different clusters, compare the related or similar components across these clusters, and show the comparison between clusters! The name can be <cluster_name>-<pod-name>.  
+
+
 NOTE: After visualizing, provide a summary report based on the metrics data. Don't reference the image link in the summary.
 
 [Current Time: {current_time}]

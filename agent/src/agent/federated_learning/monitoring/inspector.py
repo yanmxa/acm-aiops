@@ -6,7 +6,7 @@ from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_core.runnables import RunnableConfig
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 
 from dotenv import load_dotenv
 
@@ -15,7 +15,7 @@ load_dotenv()
 from .state import State
 from agent.tools.mcp_tool import get_mcp_tools
 from agent.utils.logging_config import get_logger
-from .state import update_node, complete_node, reset_progress
+from .state import update_node, complete_node, reset_progress, clear_all_state
 
 logger = get_logger("inspector")
 
@@ -33,6 +33,14 @@ async def inspector_node(state: State, config: RunnableConfig = None) -> State:
     user_query = ""
     if isinstance(last_message, HumanMessage) and hasattr(last_message, "content"):
         user_query = last_message.content
+        
+        # Handle /clear command
+        if user_query.strip() == "/clear":
+            # Clear messages and progress completely
+            await reset_progress(state, config)
+            # Return completely new state to bypass add_messages
+            return clear_all_state(state)
+        
         # Reset progress for new user query
         await reset_progress(state, config)
     # else:
@@ -57,9 +65,11 @@ async def inspector_node(state: State, config: RunnableConfig = None) -> State:
             streaming=True,
         ).bind_tools(tools)
 
+        utc_time = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        print("current time", utc_time)
 
         system_prompt = INSPECTOR_PROMPT.format(
-          current_time=datetime.now().strftime("%Y-%m-%d %H:%M:%S"), 
+          current_time=utc_time, 
           federated_learning_prompt=FEDERATED_LEARNING_PROMPT,
         )
         # Send all messages to LLM with system prompt
@@ -115,6 +125,7 @@ Instructions:
 1. Each metric has a cluster_name attribute:
    - Hub cluster: cluster_name="local-cluster"
    - Managed cluster: cluster_name is the actual cluster name, e.g., "cluster1"
+   - [Important] Don't generate duplicated queries based on the cluster_name. If user doesn't specify the cluster_name, then you should not set the cluster_name in the query language. Only set the cluster_name if user specify the cluster_name.
 
 2. Focus on the following metrics:
    a) Memory usage (memory metrics)
@@ -137,7 +148,7 @@ Instructions:
 
 4. Example tool calls:
 
-Example 1. prom_query - Query the current memory usage of all pods in the hub cluster
+Example 1. prom_query - Query the current memory usage of all pods in the hub cluster(local-cluster)
 {{
   name: 'prom_query',
   arguments: {{
@@ -145,11 +156,11 @@ Example 1. prom_query - Query the current memory usage of all pods in the hub cl
   }}
 }}
 
-Example 2. prom_range - Query the CPU usage of the pod "federated-learning-sample-client-khszf" in the managed cluster over the past 1 hour
+Example 2. prom_range - Query the CPU usage of the pod "federated-learning-sample-client-khszf" over the past 1 hour
 {{
   name: 'prom_range',
   arguments: {{
-    query: 'rate(container_cpu_usage_seconds_total{{job="cadvisor", image="", cluster_name="cluster1", pod="federated-learning-sample-client-khszf"}}[5m])',
+    query: 'rate(container_cpu_usage_seconds_total{{job="cadvisor", image="", pod="federated-learning-sample-client-khszf"}}[5m])',
     start: '2025-08-13T08:00:00Z',
     end: '2025-08-13T09:00:00Z',
     step: '1m'
@@ -157,14 +168,26 @@ Example 2. prom_range - Query the CPU usage of the pod "federated-learning-sampl
 }}
 
 5. When a user provides a query request, you should:
-   - Identify the target cluster (hub or managed)
    - Determine the metric type (memory, cpu, or energy)
    - Generate the correct PromQL query
+   - For range queries, ALWAYS use UTC time format in ISO 8601 (e.g., '2025-08-14T10:30:15Z')
    - Call the appropriate tool and return structured results
+   - Always try within 1 tool call, don't call multiple tools with the similar meaning. 
+
+6. Time format guidelines:
+   - ALWAYS use UTC time zone for all time calculations
+   - For prom_range queries, use UTC timestamps in ISO 8601 format: 'YYYY-MM-DDTHH:MM:SSZ'
+   - For relative time periods (e.g., "past 1 hour", "last 30 minutes"):
+     * Calculate start time as: current_utc_time - time_period
+     * Use current_utc_time as end time
+     * NEVER use local time zone - always UTC
+   - Examples of correct UTC time calculations:
+     * Past 1 hour: start='{current_time}' minus 1 hour, end='{current_time}'
+     * Last 30 minutes: start='{current_time}' minus 30 minutes, end='{current_time}'
    
 {federated_learning_prompt}
    
-[Current Time: {current_time}]
+[Current UTC Time: {current_time}]
 """
 
 FEDERATED_LEARNING_PROMPT = """
