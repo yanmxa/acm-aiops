@@ -26,8 +26,11 @@ async def prometheus_node(state: State, config: RunnableConfig):
     tool_names = [tool_call.get("name", "") for tool_call in last_message.tool_calls]
     tool_names_str = ", ".join(tool_names) if tool_names else ""
     
-    # Update progress with all tool names
-    await update_node(state, "tool", "active", f"Executing PromQL queries: {tool_names_str}" if tool_names_str else "Executing queries...", config)
+    # Update progress with all tool names - different messages for different tools
+    if "kubectl" in tool_names:
+        await update_node(state, "tool", "active", f"Executing kubectl commands: {tool_names_str}", config)
+    else:
+        await update_node(state, "tool", "active", f"Executing PromQL queries: {tool_names_str}" if tool_names_str else "Executing queries...", config)
     
     # Get available tools
     tools = sync_get_mcp_tools()
@@ -49,8 +52,14 @@ async def prometheus_node(state: State, config: RunnableConfig):
         if msg.name in ["prom_query", "prom_range"] and not msg.content.startswith("Error")
     )
     
-    # Generate completion message
-    if successful_tools > 0:
+    # Generate completion message based on tool types
+    kubectl_tools = [msg for msg in tool_messages if msg.name == "kubectl"]
+    prom_tools = [msg for msg in tool_messages if msg.name in ["prom_query", "prom_range"]]
+    
+    if kubectl_tools and successful_tools > 0:
+        # For kubectl commands, provide more specific completion message
+        completion_msg = f"Executed {len(kubectl_tools)} kubectl command(s) successfully"
+    elif successful_tools > 0:
         completion_msg = (f"Executed {successful_tools} queries, retrieved {data_points} data points" 
                          if data_points > 0 else f"Executed {successful_tools} queries successfully")
     else:

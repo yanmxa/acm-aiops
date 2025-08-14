@@ -28,6 +28,17 @@ def get_default_server_configs() -> Dict[str, Dict[str, Any]]:
                 ),
                 "PROMETHEUS_INSECURE": os.getenv("PROMETHEUS_INSECURE", "true"),
             },
+        },
+        "multicluster-mcp-server": {
+            "command": "npx",
+            "args": [
+              "-y",
+              "multicluster-mcp-server@latest"
+            ],
+            "transport": "stdio",
+            "env": {
+                "KUBECONFIG": os.getenv("KUBECONFIG", "~/.kube/config"),
+            },
         }
     }
     return config
@@ -53,7 +64,7 @@ def get_mcp_client(
 
 
 # --- Async version ---
-async def async_get_mcp_tools(
+async def get_mcp_tools(
     server_configs: dict[str, Connection] | None = None, use_cache: bool = True
 ) -> List[Tool]:
     """Async: Get all MCP tools from configured servers"""
@@ -99,11 +110,11 @@ def sync_get_mcp_tools(
         logger.debug("Running in async context, applying nest_asyncio")
         nest_asyncio.apply()
         # Create task and run it
-        coro = async_get_mcp_tools(server_configs, use_cache)
+        coro = get_mcp_tools(server_configs, use_cache)
         task = asyncio.ensure_future(coro)
         return loop.run_until_complete(task)
     except RuntimeError:
         # No running loop, we can use asyncio.run
         logger.debug("No running event loop, using asyncio.run")
-        return asyncio.run(async_get_mcp_tools(server_configs, use_cache))
+        return asyncio.run(get_mcp_tools(server_configs, use_cache))
 

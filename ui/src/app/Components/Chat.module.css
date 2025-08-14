@@ -5,8 +5,23 @@
   border-top-right-radius: 0.75rem;
   border: 1px solid var(--copilot-kit-separator-color) !important;
   background-color: #fff;
+  margin: 0 1.5rem !important;
 }
 
 .copilotKitChat {
-  background-color: #fff !important;
+  background-color: #f9fafb !important;
+}
+
+/* Remove default message styling */
+.copilot-kit-message-container {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* Ensure chat messages area has proper background */
+.copilot-kit-messages-container {
+  background-color: #f9fafb !important;
 }

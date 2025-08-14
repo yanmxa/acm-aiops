@@ -60,6 +60,9 @@ def tool_result_routing(state: State):
         # If we got prometheus data, go to analyzer
         if last_message.name in ["prom_query", "prom_range"]:
             return "analyze_data"  # Go to analyzer with prometheus data
+        # If kubectl command was executed, return to inspector for final response
+        elif last_message.name == "kubectl":
+            return "generate_response"  # Return to inspector to generate final response
     
     # If tool execution failed or unexpected result, go back to inspector
     return "retry_query"
@@ -93,13 +96,14 @@ graph.add_conditional_edges(
     }
 )
 
-# Tool → Analyzer (with data) or Inspector (retry)
+# Tool → Analyzer (with data) or Inspector (retry/generate response)
 graph.add_conditional_edges(
     "tool", 
     tool_result_routing, 
     {
-        "analyze_data": "analyzer",   # Successfully fetched prometheus data
-        "retry_query": "inspector"    # Tool execution failed, retry
+        "analyze_data": "analyzer",        # Successfully fetched prometheus data
+        "retry_query": "inspector",        # Tool execution failed, retry
+        "generate_response": "inspector"   # kubectl completed, generate final response
     }
 )
 

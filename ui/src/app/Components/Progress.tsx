@@ -49,7 +49,8 @@ export default function ProgressBar({
   const shouldAutoExpand = !isWorkflowCompleted;
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-3 mb-3">
+    <div className="w-full py-2 px-6">
+      <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-3">
       {/* Compact Header */}
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center space-x-3">
@@ -114,7 +115,7 @@ export default function ProgressBar({
               ) : (
                 <Circle size={12} className="text-gray-300" />
               )}
-              <span className="truncate max-w-20">{node.name}</span>
+              <span className="truncate">{node.name}</span>
             </div>
           );
         })}
@@ -127,23 +128,13 @@ export default function ProgressBar({
             const isActive = node.status === "active";
             const isCompleted = node.status === "completed";
 
-            const nodeColors = [
-              { completed: "text-emerald-600", bg: "bg-emerald-50", icon: "text-emerald-500" },
-              { completed: "text-blue-600", bg: "bg-blue-50", icon: "text-blue-500" },
-              { completed: "text-purple-600", bg: "bg-purple-50", icon: "text-purple-500" },
-              { completed: "text-orange-600", bg: "bg-orange-50", icon: "text-orange-500" },
-            ];
-            const colorScheme = nodeColors[index % nodeColors.length];
-
             return (
               <div key={index} className={`flex items-start space-x-3 p-2 rounded transition-all duration-200 ${
-                isCompleted ? colorScheme.bg : 
-                isActive ? "bg-blue-50" : 
-                "bg-gray-50"
+                isActive ? "bg-blue-50" : "bg-gray-50"
               }`}>
                 <div className="flex-shrink-0 mt-0.5">
                   {isCompleted ? (
-                    <CheckCircle size={14} className={colorScheme.icon} />
+                    <CheckCircle size={14} className="text-emerald-500" />
                   ) : isActive ? (
                     <SatelliteDish size={14} className="text-blue-500 animate-pulse" />
                   ) : (
@@ -153,14 +144,14 @@ export default function ProgressBar({
                 
                 <div className="flex-1 min-w-0">
                   <div className={`text-xs font-medium ${
-                    isCompleted ? colorScheme.completed : 
+                    isCompleted ? "text-gray-700" : 
                     isActive ? "text-blue-600" : 
                     "text-gray-500"
                   }`}>
                     {node.name}
                   </div>
                   <div className={`text-xs mt-0.5 ${
-                    isCompleted ? colorScheme.completed.replace("600", "500") : 
+                    isCompleted ? "text-gray-500" : 
                     isActive ? "text-blue-500" : 
                     "text-gray-400"
                   }`}>
@@ -172,6 +163,7 @@ export default function ProgressBar({
           })}
         </div>
       )}
+      </div>
     </div>
   );
 }

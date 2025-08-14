@@ -13,30 +13,41 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from .state import State
-from agent.tools.mcp_tool import sync_get_mcp_tools
+from agent.tools.mcp_tool import get_mcp_tools
 from agent.utils.logging_config import get_logger
-from .state import update_node, complete_node
+from .state import update_node, complete_node, reset_progress
 
 logger = get_logger("inspector")
 
 async def inspector_node(state: State, config: RunnableConfig = None) -> State:
     logger.debug("=== Inspector node starting ===")
     logger.debug(f"Input state has {len(state.get('messages', []))} messages")
-    
-    # Update progress
-    await update_node(state, "inspector", "active", "Understanding user query and generating PromQL...", config)
 
     messages = state.get("messages", [])
     if not messages:
         raise ValueError("No messages in state")
 
     last_message = messages[-1]
+    
+    # If last message is HumanMessage, it's a new user query - reset progress
     user_query = ""
     if isinstance(last_message, HumanMessage) and hasattr(last_message, "content"):
         user_query = last_message.content
-
+        # Reset progress for new user query
+        await reset_progress(state, config)
+    # else:
+    #     # Get the original user query (first HumanMessage)
+    #     for msg in messages:
+    #         if isinstance(msg, HumanMessage) and hasattr(msg, "content"):
+    #             user_query = msg.content
+    #             break
+    # Update progress
+    await update_node(state, "inspector", "active", "Understanding user query...", config)
+    
     try:
-        tools = sync_get_mcp_tools()
+        tools = await get_mcp_tools()
+        include_tools = ["prom_query", "prom_range", "prom_discover", "prom_metadata", "prom_targets", "kubectl"]
+        tools = [tool for tool in tools if tool.name in include_tools]
         logger.debug(f"Retrieved {len(tools)} MCP tools")
 
         llm = ChatOpenAI(
@@ -47,7 +58,11 @@ async def inspector_node(state: State, config: RunnableConfig = None) -> State:
         ).bind_tools(tools)
 
 
-        system_prompt = INSPECTOR_PROMPT.format(current_time=datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+        system_prompt = INSPECTOR_PROMPT.format(
+          current_time=datetime.now().strftime("%Y-%m-%d %H:%M:%S"), 
+          federated_learning_prompt=FEDERATED_LEARNING_PROMPT,
+        )
+        # Send all messages to LLM with system prompt
         response = llm.invoke(
             [SystemMessage(content=system_prompt), *messages]
         )
@@ -147,5 +162,85 @@ Example 2. prom_range - Query the CPU usage of the pod "federated-learning-sampl
    - Generate the correct PromQL query
    - Call the appropriate tool and return structured results
    
+{federated_learning_prompt}
+   
 [Current Time: {current_time}]
+"""
+
+FEDERATED_LEARNING_PROMPT = """
+**Federated Learning Operations**
+
+You have two main roles when working with federated learning in the Open Cluster Management environment:
+
+---
+
+### **1. Create a Federated Learning instance**
+
+A federated learning instance is defined by a `FederatedLearning` custom resource.
+Example:
+
+```yaml
+apiVersion: federation-ai.open-cluster-management.io/v1alpha1
+kind: FederatedLearning
+metadata:
+  name: federated-learning-sample
+  namespace: open-cluster-management
+spec:
+  framework: flower
+  server:
+    image: <REGISTRY>/flower-app-torch:<IMAGE_TAG>
+    rounds: 3
+    minAvailableClients: 2
+    listeners:
+      - name: server-listener
+        port: 8080
+        type: NodePort
+    storage:
+      type: PersistentVolumeClaim
+      name: model-pvc
+      path: /data/models
+      size: 2Gi
+  client:
+    image: <REGISTRY>/flower-app-torch:<IMAGE_TAG>
+    placement:
+      clusterSets:
+        - global
+      predicates:
+        - requiredClusterSelector:
+            claimSelector:
+              matchExpressions:
+                - key: federated-learning-sample.client-data
+                  operator: Exists
+```
+
+**Required fields:**
+
+* **Server image** and **client image** (if missing, ask the user).
+* **Listener type** for the server.
+* **Client placement rules** (e.g., in this example, schedule clients to managed clusters that have the cluster claim `federated-learning-sample.client-data`).
+
+If any of the above information is missing, request it from the user.
+Once all required fields are available, use `kubectl(Provide only the 'yaml' input, not both) to create the `FederatedLearning` instance.
+
+---
+
+### **2. Retrieve metrics for a Federated Learning instance**
+
+A federated learning deployment consists of:
+
+* **Server component (pod)** in the hub cluster (`local-cluster`).
+
+  * Pod name format: `<federated-learning-instance-name>-server-*`
+  * Example: For the instance `federated-learning-sample`, the hub cluster server pod prefix is `federated-learning-sample-server-*`.
+
+* **Client components (pods)** in the managed clusters.
+
+  * Pod name format: `<federated-learning-instance-name>-client-*`
+  * Example: For the instance `federated-learning-sample`, the client pod prefix in a managed cluster is `federated-learning-sample-client-*`.
+
+**When a user query involves federated learning metrics:**
+
+* Retrieve metrics for both the **server** (hub cluster) and **clients** (managed clusters).
+* Filter metrics using `pod` or `pod_name` labels that match the above naming patterns.
+
 """

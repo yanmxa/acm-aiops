@@ -95,3 +95,11 @@ async def update_node(state: State, node_name: str, status: str, message: str, c
     
     if config:
         await emit_state(state, config)
+
+async def reset_progress(state: State, config: RunnableConfig = None) -> None:
+    """Reset progress for a new user query"""
+    state["progress"] = {"nodes": []}
+    logger.debug("Progress reset for new user query")
+    
+    if config:
+        await emit_state(state, config)

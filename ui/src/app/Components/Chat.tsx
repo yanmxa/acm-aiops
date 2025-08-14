@@ -1,6 +1,7 @@
 "use client";
 import React, { useCallback } from "react";
 import "@copilotkit/react-ui/styles.css";
+import "./Chat.module.css";
 import { useCopilotChat, useCoAgent, useCopilotAction, useCoAgentStateRender } from "@copilotkit/react-core";
 import { CopilotChat } from "@copilotkit/react-ui";
 import { State, RechartParameters } from '../lib/agent_state';
@@ -110,9 +111,9 @@ export default function Chat() {
         </div>
       )}
 
-      <div className="w-7/10 h-8/10 bg-white">
+      <div className="w-7/10 h-8/10 bg-gray-50">
         <CopilotChat 
-          className="h-full rounded-lg"
+          className="h-full rounded-lg bg-gray-50"
           RenderTextMessage={TextMessageRender}
         />
       </div>
