@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { Spinner } from "./Spinner";
-import { AgentState, ActionState } from "../lib/agent_state";
+import { State } from "../lib/agent_state";
 import { RenderMessageProps } from "@copilotkit/react-ui";
 import { Clipboard, User, Bot, Wrench } from "lucide-react";
 import ChartOutput from "./ChartOutput";
@@ -82,36 +82,11 @@ export function CustomRenderActionExecutionMessage(props: RenderMessageProps) {
 }
 
 
-export const Actions = ({ actions }: { actions: ActionState[] }) => {
-  if (!actions || actions.length === 0) {
-        return null;
-  }
-
-  const firstPendingIndex = actions.findIndex((s) => s.status === "pending");
-
-  return (
-    <div className="flex py-2">
-      <div className="mr-2 mt-3 text-gray-500">
-          <Wrench size={20} />
-      </div>
-      <div className="bg-gray-100 rounded-lg w-[90%] p-4 text-black space-y-4">
-        {actions.map((action, index) => (
-          <Action
-            key={index}
-            action={action}
-            isFirstPending={index === firstPendingIndex && action.status === "pending"}
-          />
-        ))}
-      </div>
-    </div>
-  );
-};
-
 export const Action = ({
   action,
   isFirstPending,
 }: {
-  action: ActionState;
+  action: any;
   isFirstPending?: boolean;
 }) => {
   const [expanded, setExpanded] = useState(true);

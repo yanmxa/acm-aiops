@@ -12,19 +12,19 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-from .state import AgentState
+from .state import State
 from agent.tools.mcp_tool import sync_get_mcp_tools
 from agent.utils.logging_config import get_logger
-from .progress_manager import add_or_update_node, update_node_completion
+from .state import update_node, complete_node
 
 logger = get_logger("inspector")
 
-async def inspector(state: AgentState, config: RunnableConfig = None) -> AgentState:
+async def inspector_node(state: State, config: RunnableConfig = None) -> State:
     logger.debug("=== Inspector node starting ===")
     logger.debug(f"Input state has {len(state.get('messages', []))} messages")
     
     # Update progress
-    await add_or_update_node(state, "inspector", "active", "Understanding user query and generating PromQL...", config)
+    await update_node(state, "inspector", "active", "Understanding user query and generating PromQL...", config)
 
     messages = state.get("messages", [])
     if not messages:
@@ -70,14 +70,14 @@ async def inspector(state: AgentState, config: RunnableConfig = None) -> AgentSt
             completion_msg = "No monitoring data needed"
         
         # Update inspector completion immediately
-        print(f"DEBUG: Inspector calling update_node_completion with message: {completion_msg}")
-        await update_node_completion(state, "inspector", completion_msg, config)
+        logger.debug(f"Inspector calling update_node_completion with message: {completion_msg}")
+        await complete_node(state, "inspector", completion_msg, config)
         
         if user_query:
             return {
               **state,
               "messages": [response], 
-              "user_query": user_query
+              "query": user_query
               }
         else:
             return {**state,"messages": [response]}

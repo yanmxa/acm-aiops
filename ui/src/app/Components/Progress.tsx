@@ -2,12 +2,12 @@
 import React, { useState } from "react";
 
 import { SatelliteDish, CheckCircle, Circle, Activity } from "lucide-react";
-import { WorkflowProgress, NodeInfo } from '../lib/agent_state';
+import { Progress } from '../lib/agent_state';
 
 interface ProgressBarProps {
   status: string;
   label?: string;
-  workflow_progress?: WorkflowProgress;
+  progress?: Progress;
 }
 
 // Remove hardcoded NODE_LABELS since we get this info from backend
@@ -15,17 +15,17 @@ interface ProgressBarProps {
 export default function ProgressBar({ 
   label = "Processing", 
   status = "complete", 
-  workflow_progress 
+  progress 
 }: ProgressBarProps) {
   // State for controlling details visibility - collapsed by default when completed
   const [isExpanded, setIsExpanded] = useState(false);
   
   // Don't hide progress bar, show completion state
-  if (!workflow_progress && status === "complete") {
+  if (!progress && status === "complete") {
     return <></>
   }
 
-  if (!workflow_progress) {
+  if (!progress) {
     // Fallback to simple progress bar
     return (
       <div className="flex items-center space-x-2 text-sm font-medium text-gray-700 animate-pulse pl-1">
@@ -35,12 +35,12 @@ export default function ProgressBar({
     );
   }
 
-  const { nodes_info } = workflow_progress;
+  const { nodes } = progress;
   
   // Calculate progress percentage based on completed nodes
-  const completedCount = nodes_info.filter(node => node.node_status === "completed").length;
-  const activeCount = nodes_info.filter(node => node.node_status === "active").length;
-  const totalCount = nodes_info.length;
+  const completedCount = nodes.filter(node => node.status === "completed").length;
+  const activeCount = nodes.filter(node => node.status === "active").length;
+  const totalCount = nodes.length;
   const progress_percentage = totalCount > 0 ? Math.round(((completedCount + activeCount * 0.5) / totalCount) * 100) : 0;
   
   const isWorkflowCompleted = completedCount === totalCount && totalCount > 0;
@@ -99,9 +99,9 @@ export default function ProgressBar({
 
       {/* Compact Status Summary - Always Visible */}
       <div className="flex items-center space-x-2 text-xs text-gray-600">
-        {nodes_info.map((node, index) => {
-          const isActive = node.node_status === "active";
-          const isCompleted = node.node_status === "completed";
+        {nodes.map((node, index) => {
+          const isActive = node.status === "active";
+          const isCompleted = node.status === "completed";
           const nodeColors = ["text-emerald-500", "text-blue-500", "text-purple-500", "text-orange-500"];
           const iconColor = nodeColors[index % nodeColors.length];
 
@@ -114,7 +114,7 @@ export default function ProgressBar({
               ) : (
                 <Circle size={12} className="text-gray-300" />
               )}
-              <span className="truncate max-w-20">{node.node_name}</span>
+              <span className="truncate max-w-20">{node.name}</span>
             </div>
           );
         })}
@@ -123,9 +123,9 @@ export default function ProgressBar({
       {/* Detailed Node Status - Collapsible */}
       {(isExpanded || shouldAutoExpand) && (
         <div className="mt-3 pt-3 border-t border-gray-100 space-y-2">
-          {nodes_info.map((node, index) => {
-            const isActive = node.node_status === "active";
-            const isCompleted = node.node_status === "completed";
+          {nodes.map((node, index) => {
+            const isActive = node.status === "active";
+            const isCompleted = node.status === "completed";
 
             const nodeColors = [
               { completed: "text-emerald-600", bg: "bg-emerald-50", icon: "text-emerald-500" },
@@ -157,14 +157,14 @@ export default function ProgressBar({
                     isActive ? "text-blue-600" : 
                     "text-gray-500"
                   }`}>
-                    {node.node_name}
+                    {node.name}
                   </div>
                   <div className={`text-xs mt-0.5 ${
                     isCompleted ? colorScheme.completed.replace("600", "500") : 
                     isActive ? "text-blue-500" : 
                     "text-gray-400"
                   }`}>
-                    {node.node_message}
+                    {node.message}
                   </div>
                 </div>
               </div>

@@ -4,19 +4,24 @@ Chart Node - Handles render_recharts tool calls for visualization
 
 from langchain_core.messages import ToolMessage
 from langchain_core.runnables import RunnableConfig
-from agent.federated_learning.monitoring.state import AgentState
+from agent.federated_learning.monitoring.state import State
 from agent.tools.render_recharts import render_recharts
 from agent.utils.logging_config import get_logger
-from .progress_manager import add_or_update_node, update_node_completion
-
+from .state import update_node, complete_node
 logger = get_logger("chart")
 
-async def chart_node(state: AgentState, config: RunnableConfig):
+# Chart types mapping
+CHART_TYPE_MAPPING = {
+    "BarChart": "bar chart",
+    "LineChart": "line chart"
+}
+
+async def chart_node(state: State, config: RunnableConfig):
     """Handle render_recharts tool calls separately"""
     logger.info(f"Starting chart node with #message {len(state['messages'])}")
     
     # Update progress
-    await add_or_update_node(state, "chart", "active", "Generating visualizations...", config)
+    await update_node(state, "chart", "active", "Generating visualizations...", config)
     
     messages = state.get("messages", [])
     if not messages:
@@ -63,35 +68,31 @@ async def chart_node(state: AgentState, config: RunnableConfig):
     
     # Count charts created and get their types
     chart_details = []
-    logger.debug(f"DEBUG: Processing {len(tool_messages)} tool messages")
+    logger.debug(f"Processing {len(tool_messages)} tool messages")
     
     for tool_call, msg in zip(last_message.tool_calls, tool_messages):
-        logger.debug(f"DEBUG: tool_call name: {tool_call.get('name')}, msg content: {msg.content[:100]}...")
+        logger.debug(f"Tool call: {tool_call.get('name')}, content preview: {msg.content[:100]}...")
         
         if tool_call.get("name") == "render_recharts":
             # Check if the tool execution was successful (not an error message)
             is_error = msg.content.startswith("Error") or "error" in msg.content.lower()
-            logger.debug(f"DEBUG: render_recharts call - is_error: {is_error}")
+            logger.debug(f"Render recharts call - is_error: {is_error}")
             
             if not is_error:
                 # Extract chart type from tool call arguments
                 charts = tool_call.get("args", {}).get("charts", [])
-                logger.debug(f"DEBUG: Found {len(charts)} charts in args")
+                logger.debug(f"Found {len(charts)} charts in args")
                 
                 for chart in charts:
                     chart_type = chart.get("rechart_type", "chart")
-                    logger.debug(f"DEBUG: Chart type: {chart_type}")
+                    logger.debug(f"Chart type detected: {chart_type}")
                     
-                    # Convert to more readable format
-                    if chart_type == "BarChart":
-                        chart_details.append("bar chart")
-                    elif chart_type == "LineChart":
-                        chart_details.append("line chart")
-                    else:
-                        chart_details.append("chart")
+                    # Convert to more readable format using constants
+                    readable_type = CHART_TYPE_MAPPING.get(chart_type, "chart")
+                    chart_details.append(readable_type)
     
     # Update chart completion message
-    logger.debug(f"DEBUG: chart_details = {chart_details}")
+    logger.debug(f"Chart details collected: {chart_details}")
     
     if chart_details:
         if len(chart_details) == 1:
@@ -114,12 +115,12 @@ async def chart_node(state: AgentState, config: RunnableConfig):
         
         if successful_calls > 0:
             completion_msg = f"Generated {successful_calls} chart{'s' if successful_calls > 1 else ''}"
-            logger.debug(f"DEBUG: Using fallback detection - {successful_calls} successful calls")
+            logger.debug(f"Using fallback detection - {successful_calls} successful calls")
         else:
             completion_msg = "No visualizations created"
     
-    logger.debug(f"DEBUG: Final completion_msg = {completion_msg}")
-    await update_node_completion(state, "chart", completion_msg, config)
+    logger.debug(f"Final completion message: {completion_msg}")
+    await complete_node(state, "chart", completion_msg, config)
     
     logger.info(f"Ending chart node with #message {len(updated_messages)}")
     

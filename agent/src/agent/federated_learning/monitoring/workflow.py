@@ -12,31 +12,31 @@ from langchain_core.messages import ToolMessage
 from agent.tools.mcp_tool import sync_get_mcp_tools
 from agent.tools.render_recharts import render_recharts
 from agent.utils.logging_config import get_logger
-from .inspector import inspector
+from .inspector import inspector_node
 from .analyzer import analyzer_node
 from .chart import chart_node
-from .state import AgentState
-from .tool import tool_node
+from .state import State
+from .prometheus import prometheus_node
 # Removed unused import: complete_progress
 
 logger = get_logger("workflow")
 
 # Initialize the workflow graph
-graph = StateGraph(AgentState)
+graph = StateGraph(State)
 
 # ========== NODE DEFINITIONS ==========
 # Add all workflow nodes
-graph.add_node("inspector", inspector)     # Inspects user query and determines data needs
+graph.add_node("inspector", inspector_node)     # Inspects user query and determines data needs
 graph.add_node("analyzer", analyzer_node)  # Analyzes metrics and creates visualizations
 graph.add_node("chart", chart_node)        # Handles chart rendering with render_recharts
-graph.add_node("tool", tool_node)          # Executes MCP tools (prometheus queries)
+graph.add_node("tool", prometheus_node)    # Executes MCP tools (prometheus queries)
 
 # Set workflow entry point
 graph.set_entry_point("inspector")
 
 # ========== EDGE ROUTING FUNCTIONS ==========
 
-def inspector_routing(state: AgentState):
+def inspector_routing(state: State):
     """Route from inspector: check if tools are needed"""
     logger.debug("=== Routing: Inspector ===")
     messages = state["messages"]
@@ -50,7 +50,7 @@ def inspector_routing(state: AgentState):
     else:
         return "complete"    # End workflow if no tools needed
 
-def tool_result_routing(state: AgentState):
+def tool_result_routing(state: State):
     """Route from tool node: handle prometheus data results"""
     logger.debug("=== Routing: Tool Results ===")
     messages = state["messages"]
@@ -64,7 +64,7 @@ def tool_result_routing(state: AgentState):
     # If tool execution failed or unexpected result, go back to inspector
     return "retry_query"
 
-def analyzer_routing(state: AgentState):
+def analyzer_routing(state: State):
     """Route from analyzer: check if visualization is needed"""
     logger.debug("=== Routing: Analyzer ===")
     messages = state["messages"]

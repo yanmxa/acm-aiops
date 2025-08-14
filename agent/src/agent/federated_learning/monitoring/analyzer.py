@@ -2,30 +2,28 @@
 Analyzer Node - Analyzes metrics data and provides insights with Recharts visualization
 """
 
-import asyncio
 from datetime import datetime, timezone
 
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import SystemMessage
 from langchain_core.runnables import RunnableConfig
 
-from .state import AgentState
+from .state import State
 from agent.utils.logging_config import get_logger
 from agent.tools.render_recharts import render_recharts
 from agent.utils.print_messages import print_messages
 from agent.utils.copilotkit_state import emit_state
-from .progress_manager import add_or_update_node, update_node_completion
+from .state import update_node, complete_node
 
 logger = get_logger("analyzer")
 
 
-async def analyzer_node(state: AgentState, config: RunnableConfig = None):
+async def analyzer_node(state: State, config: RunnableConfig = None):
     logger.info(f"Starting analyzer with #message {len(state['messages'])}")
     
     # Update progress
-    await add_or_update_node(state, "analyzer", "active", "Analyzing metrics data...", config)
+    await update_node(state, "analyzer", "active", "Analyzing metrics data...", config)
     
-    state["update"] = "Analyzer node: starting"
     if config:
         await emit_state(state, config)
 
@@ -44,7 +42,6 @@ async def analyzer_node(state: AgentState, config: RunnableConfig = None):
         
     messages = state["messages"] + [ai_message]
     
-    state["update"] = "Analyzer node: completed"
     if config:
         await emit_state(state, config)
     
@@ -71,11 +68,11 @@ async def analyzer_node(state: AgentState, config: RunnableConfig = None):
             else:
                 completion_msg = "Analysis report completed"
                 
-            await update_node_completion(state, "analyzer", completion_msg, config)
+            await complete_node(state, "analyzer", completion_msg, config)
         else:
             # First time through analyzer, creating visualizations
             completion_msg = "Initial analysis completed, creating visualizations"
-            await update_node_completion(state, "analyzer", completion_msg, config)
+            await complete_node(state, "analyzer", completion_msg, config)
         
         print_messages(messages)
 
@@ -85,10 +82,7 @@ async def analyzer_node(state: AgentState, config: RunnableConfig = None):
     }
 
 
-# Legacy function for backwards compatibility
-def analyzer(state: AgentState) -> AgentState:
-    """Legacy analyzer function - use analyzer_node for new implementations"""
-    return asyncio.run(analyzer_node(state, None))
+# Legacy function removed - use analyzer_node directly
 
 
 ANALYZER_PROMPT = """

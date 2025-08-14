@@ -1,31 +1,18 @@
 
 
-export type ActionState = {
-  status: "pending" | "completed";  // default: "pending"
-  approval: "y" | "n";              // default: "y"
+export interface Node {
   name: string;
-  args: string;
-  output: string;
-};
-
-export interface NodeInfo {
-  node_name: string;
-  node_status: string; // "active", "completed", "pending"
-  node_message: string;
+  status: "pending" | "active" | "completed" | "failed";
+  message: string;
 }
 
-export interface WorkflowProgress {
-  nodes_info: NodeInfo[];
+export interface Progress {
+  nodes: Node[];
 }
 
-export interface AgentState {
-  update: string;
-  progress: {
-    label: string;
-    value: number;
-  };
-  actions: ActionState[];
-  workflow_progress?: WorkflowProgress;
+export interface State {
+  query: string;
+  progress?: Progress;
 }
 
 
