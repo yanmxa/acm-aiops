@@ -15,13 +15,13 @@ It includes:
 
    ```bash
    cd agent
-   poetry install
+   uv sync
    ```
 
 2. **Start the server**
 
    ```bash
-   poetry run main
+   uv run main
    ```
 
 > **Note**: Set `OPENAI_API_KEY` in `.env`.

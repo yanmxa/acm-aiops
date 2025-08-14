@@ -42,3 +42,5 @@ next-env.d.ts
 .vscode
 __pycache__
 .venv
+.kiro
+.ipynb_checkpoints

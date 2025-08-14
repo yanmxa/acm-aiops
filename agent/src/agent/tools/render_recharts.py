@@ -20,10 +20,10 @@ class RechartData(BaseModel):
         description="The key used for the x-axis (e.g., 'cluster')."
     )
     y_axis_keys: List[str] = Field(
-        description="List of keys from each data point to plot on the y-axis (e.g., ['cpu', 'memory'])."
+        description="List of keys from each data point to plot on the y-axis (e.g., ['cpu', 'memory', 'battery', 'power'])."
     )
     unit: str = Field(
-        description="The unit of measurement for y-axis values, such as 'MiB' or 'GiB' for memory. The unit should be human-readable."
+        description="The unit of measurement for y-axis values, such as 'MiB' or 'GiB' for memory, 'cores' or 'm' for CPU, 'J' or 'kJ' for energy consumption. The unit should be human-readable."
     )
     chart_title: str = Field(
         description="Title to display above the chart."

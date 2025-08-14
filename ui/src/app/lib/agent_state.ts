@@ -8,6 +8,16 @@ export type ActionState = {
   output: string;
 };
 
+export interface NodeInfo {
+  node_name: string;
+  node_status: string; // "active", "completed", "pending"
+  node_message: string;
+}
+
+export interface WorkflowProgress {
+  nodes_info: NodeInfo[];
+}
+
 export interface AgentState {
   update: string;
   progress: {
@@ -15,6 +25,7 @@ export interface AgentState {
     value: number;
   };
   actions: ActionState[];
+  workflow_progress?: WorkflowProgress;
 }
 
 

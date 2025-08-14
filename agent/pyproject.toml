@@ -3,27 +3,34 @@ name = "agent"
 version = "0.1.0"
 description = ""
 authors = [{ name = "Meng Yan", email = "myan@redhat.com" }]
-readme = "README.md"
+# readme = "README.md"
 requires-python = ">=3.12,<4.0"
 dependencies = [
-  "ag-ui-protocol (>=0.1.5,<0.2.0)",
-  "openai (>=1.82.1,<2.0.0)",
-  "fastapi (>=0.115.12,<0.116.0)",
-  "uvicorn (>=0.34.3,<0.35.0)",
-  "python-dotenv (>=1.1.0,<2.0.0)",
+  "ag-ui-protocol",
+  "openai",
+  "fastapi",
+  "uvicorn",
+  "python-dotenv",
   "copilotkit",
-  "langchain-openai (>=0.3.18,<0.4.0)",
-  "langchain-mcp-adapters (>=0.1.4,<0.2.0)",
-  "langchain-ollama (>=0.3.3,<0.4.0)",
+  "langgraph>=0.2.62,<0.3.0",
+  "langchain",
+  "langchain-openai",
+  "langchain-mcp-adapters",
+  "langchain-ollama",
+  "nest-asyncio",
+  "ipykernel>=6.30.1",
+  "jupyter>=1.1.1",
 ]
 
-[tool.poetry]
-packages = [{ include = "agent", from = "src" }]
+[project.optional-dependencies]
+dev = ["pytest", "ipykernel", "graphviz"]
 
+[project.scripts]
+main = "agent.main:main"
 
 [build-system]
-requires = ["poetry-core>=2.0.0,<3.0.0"]
-build-backend = "poetry.core.masonry.api"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
-[tool.poetry.scripts]
-main = "src.agent.main:main"
+[tool.hatch.build.targets.wheel]
+packages = ["src/agent"]
