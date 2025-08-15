@@ -46,15 +46,30 @@ async def prometheus_node(state: State, config: RunnableConfig):
     
     # Count successful tool executions and estimate data points
     successful_tools = count_successful_tools(tool_messages)
-    data_points = sum(
-        msg.content.count('"values":') + msg.content.count('"value":')
-        for msg in tool_messages
-        if msg.name in ["prom_query", "prom_range"] and not msg.content.startswith("Error")
-    )
+    data_points = 0
+    
+    # Calculate actual data points from Prometheus responses
+    for msg in tool_messages:
+        if msg.name in ["prom_query", "prom_range"] and not msg.content.startswith("Error"):
+            import json
+            try:
+                # Parse JSON response to count actual data points
+                response_data = json.loads(msg.content)
+                if response_data.get("status") == "success":
+                    result = response_data.get("data", {}).get("result", [])
+                    for series in result:
+                        if "values" in series:
+                            # Range query: count all time series values
+                            data_points += len(series["values"])
+                        elif "value" in series:
+                            # Instant query: count single value
+                            data_points += 1
+            except (json.JSONDecodeError, KeyError):
+                # If parsing fails, fallback to simple counting
+                data_points += msg.content.count('"values":') + msg.content.count('"value":')
     
     # Generate completion message based on tool types
     kubectl_tools = [msg for msg in tool_messages if msg.name == "kubectl"]
-    prom_tools = [msg for msg in tool_messages if msg.name in ["prom_query", "prom_range"]]
     
     if kubectl_tools and successful_tools > 0:
         # For kubectl commands, provide more specific completion message

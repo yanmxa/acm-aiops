@@ -2,6 +2,7 @@
 Analyzer Node - Analyzes metrics data and provides insights with Recharts visualization
 """
 
+import os
 from datetime import datetime, timezone
 
 from langchain_openai import ChatOpenAI
@@ -31,13 +32,42 @@ async def analyzer_node(state: State, config: RunnableConfig = None):
         current_time=datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     )
     
-    messages = [
-        SystemMessage(content=system_prompt),
-        *state["messages"],
-    ]
-
+    state_messages = state["messages"]
+    
+    # Find if there's a SystemMessage already in the conversation
+    has_system_message = any(isinstance(msg, SystemMessage) for msg in state_messages)
+    
+    if has_system_message:
+        # Use existing messages as-is to preserve tool call/tool message relationships
+        messages = list(state_messages)
+    else:
+        # Safe to add SystemMessage at the beginning only if no tool messages exist
+        has_tool_messages = any(hasattr(msg, 'name') and msg.name for msg in state_messages)
+        
+        if has_tool_messages:
+            # Don't add SystemMessage to avoid breaking tool call/tool message pairs
+            # Instead, append instructions to the last AI message or use a different approach
+            messages = list(state_messages)
+            logger.warning("Skipping SystemMessage due to existing tool messages in conversation")
+        else:
+            # Safe to add SystemMessage at the beginning
+            messages = [SystemMessage(content=system_prompt)] + list(state_messages)
+    
     # Use render_recharts tool for visualization
-    ai_message = await ChatOpenAI(model="gpt-4o").bind_tools([render_recharts]).ainvoke(messages)
+    model_name = os.getenv("OPENAI_MODEL", "gpt-4o")
+    ai_message = await ChatOpenAI(model=model_name).bind_tools([render_recharts]).ainvoke(messages)
+    
+    # Add metadata to response
+    if hasattr(ai_message, 'additional_kwargs'):
+        ai_message.additional_kwargs.update({
+            "node": "analyzer",
+            "model": model_name
+        })
+    else:
+        ai_message.additional_kwargs = {
+            "node": "analyzer", 
+            "model": model_name
+        }
     messages.append(ai_message)
         
     messages = state["messages"] + [ai_message]
@@ -74,8 +104,6 @@ async def analyzer_node(state: State, config: RunnableConfig = None):
             completion_msg = "Initial analysis completed, creating visualizations"
             await complete_node(state, "analyzer", completion_msg, config)
         
-        print_messages(messages)
-
     return {
         **state,
         "messages": messages,
@@ -90,26 +118,23 @@ You are a metrics analyzer specialized in multi-cluster performance analysis.
 
 **Workflow:**
 1. Analyze metrics data to understand patterns and resource utilization
-2. Use render_recharts tool to create visualizations:
+2. Use render_recharts tool for data visualizations:
    - Multi-cluster comparisons: horizontal comparison charts
    - Single cluster analysis: time-series or component comparison charts
-   - Convert metric values from their default units to human-readable formats: for memory metrics in bytes, use MiB or GiB; for CPU metrics in cores or millicores, use cores (e.g., 0.5 cores instead of 500m); for energy metrics in joules, use J or kJ as appropriate.
-   
-3. Provide summary insights after visualization
+   - Choose LineChart(time-series) for trends or comparisons, BarChart for instant data or comparisons
+   - Include relevant y_axis_keys based on metrics (cpu, memory, battery, power, etc.)
+   - Use the proper(human-friendly) units for the y_axis_keys:
+      - default memory unit is bytes, you can convert to MiB or GiB 
+      - default cpu is cores, you can convert to millicores if needed
+      - default energy is joules, you can convert to kJ or MJ if needed
+  - **IMPORTANT:** If the metrics span different clusters, compare the related/similar components across these clusters, and show the comparison between clusters! The name should convert to be <cluster_name>:<pod-name>. 
+  - If you already should these data in a combined chart, then dont plot them one by one again.
+   - Dont plot duplicated data, if the data is already plotted, then dont plot it again.
+   - Covert the time into right format if show the time in the x-axis.
 
 **Cluster Context:**
 - Hub cluster: cluster_name="local-cluster" 
 - Managed clusters: actual cluster names (e.g., "cluster1", "cluster2")
-
-**Visualization:**
-- Always use render_recharts for data visualization
-- Choose LineChart for trends, BarChart for comparisons
-- Include relevant y_axis_keys based on metrics (cpu, memory, battery, power, etc.)
-
-
-**IMPORTANT:** 
-- If the sample metrics span different clusters, compare the related or similar components across these clusters, and show the comparison between clusters! The name can be <cluster_name>-<pod-name>.  
-
 
 NOTE: After visualizing, provide a summary report based on the metrics data. Don't reference the image link in the summary.
 

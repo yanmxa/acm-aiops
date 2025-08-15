@@ -4,6 +4,7 @@ Inspector Node - Generates PromQL queries based on user queries
 
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage, SystemMessage
+from langchain_core.messages.utils import trim_messages, count_tokens_approximately
 from langchain_core.runnables import RunnableConfig
 import os
 from datetime import datetime, timezone
@@ -15,13 +16,13 @@ load_dotenv()
 from .state import State
 from agent.tools.mcp_tool import get_mcp_tools
 from agent.utils.logging_config import get_logger
-from .state import update_node, complete_node, reset_progress, clear_all_state
+from .state import update_node, complete_node, reset_progress
 
 logger = get_logger("inspector")
 
 async def inspector_node(state: State, config: RunnableConfig = None) -> State:
     logger.debug("=== Inspector node starting ===")
-    logger.debug(f"Input state has {len(state.get('messages', []))} messages")
+    logger.info(f"Inspector Input state has {len(state.get('messages', []))} messages")
 
     messages = state.get("messages", [])
     if not messages:
@@ -34,21 +35,21 @@ async def inspector_node(state: State, config: RunnableConfig = None) -> State:
     if isinstance(last_message, HumanMessage) and hasattr(last_message, "content"):
         user_query = last_message.content
         
-        # Handle /clear command
-        if user_query.strip() == "/clear":
-            # Clear messages and progress completely
-            await reset_progress(state, config)
-            # Return completely new state to bypass add_messages
-            return clear_all_state(state)
+        # # Handle /clear command
+        # if user_query.strip() == "/clear":
+        #     logger.info("Processing /clear command")
+        #     # Clear messages and progress completely
+        #     await reset_progress(state, config)
+        #     # Return completely new state to bypass add_messages
+        #     state = await clear_all_state(state, config)
+            
+        #     return {
+        #       **state,
+        #     }
         
         # Reset progress for new user query
         await reset_progress(state, config)
-    # else:
-    #     # Get the original user query (first HumanMessage)
-    #     for msg in messages:
-    #         if isinstance(msg, HumanMessage) and hasattr(msg, "content"):
-    #             user_query = msg.content
-    #             break
+    
     # Update progress
     await update_node(state, "inspector", "active", "Understanding user query...", config)
     
@@ -58,8 +59,10 @@ async def inspector_node(state: State, config: RunnableConfig = None) -> State:
         tools = [tool for tool in tools if tool.name in include_tools]
         logger.debug(f"Retrieved {len(tools)} MCP tools")
 
+        model_name = os.getenv("OPENAI_MODEL", "gpt-4o")
+        
         llm = ChatOpenAI(
-            model=os.getenv("OPENAI_MODEL", "gpt-4"),
+            model=model_name,
             temperature=0.1,
             api_key=os.getenv("OPENAI_API_KEY"),
             streaming=True,
@@ -72,10 +75,35 @@ async def inspector_node(state: State, config: RunnableConfig = None) -> State:
           current_time=utc_time, 
           federated_learning_prompt=FEDERATED_LEARNING_PROMPT,
         )
-        # Send all messages to LLM with system prompt
-        response = llm.invoke(
-            [SystemMessage(content=system_prompt), *messages]
+        
+        # Trim messages to stay within token limit (10000 tokens max)
+        trimmed_messages = trim_messages(
+            messages,
+            strategy="last",
+            token_counter=count_tokens_approximately,
+            max_tokens=10000,
+            start_on="human",
+            end_on=("human", "tool"),
         )
+        
+        logger.debug(f"Trimmed messages from {len(messages)} to {len(trimmed_messages)}")
+        
+        # Send trimmed messages to LLM with system prompt
+        response = llm.invoke(
+            [SystemMessage(content=system_prompt), *trimmed_messages]
+        )
+        
+        # Add metadata to response
+        if hasattr(response, 'additional_kwargs'):
+            response.additional_kwargs.update({
+                "node": "inspector",
+                "model": model_name
+            })
+        else:
+            response.additional_kwargs = {
+                "node": "inspector", 
+                "model": model_name
+            }
         
         # Update completion info with PromQL queries if any tool calls were made
         if hasattr(response, 'tool_calls') and response.tool_calls:
@@ -101,11 +129,11 @@ async def inspector_node(state: State, config: RunnableConfig = None) -> State:
         if user_query:
             return {
               **state,
-              "messages": [response], 
+              "messages": list(messages) + [response], 
               "query": user_query
               }
         else:
-            return {**state,"messages": [response]}
+            return {**state,"messages": list(messages) + [response]}
 
     except Exception as e:
         logger.error(f"Inspector node failed: {str(e)}", exc_info=True)
