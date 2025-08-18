@@ -41,7 +41,7 @@ Example 2 - Line Chart (Time Series):
 # Define the schema
 class RechartData(BaseModel):
     rechart_data: List[Dict[str, Any]] = Field(
-        description="The structured data used for rendering the chart with Recharts. Each item should be a dictionary with metric values (numeric values without units, string labels for x-axis)."
+        description="REQUIRED: The structured data used for rendering the chart with Recharts. Each item should be a dictionary with metric values (raw numeric values from source data, string labels for x-axis). Example: [{'timestamp': 1755227795, 'cluster1:foo-client': 581467340.8, 'cluster2:foo-client': 557235855.36}]"
     )
     rechart_type: Literal["BarChart", "LineChart"] = Field(
         description="The chart type to use. 'BarChart' for categorical/comparison data, 'LineChart' for time-series or trend data."
@@ -53,7 +53,11 @@ class RechartData(BaseModel):
         description="List of keys from each data point to plot on the y-axis (e.g., ['cpu', 'memory', 'energy']). Each key should correspond to numeric values in the data."
     )
     unit: str = Field(
-        description="The unit of measurement for y-axis values. Use short, readable formats: 'MiB'/'GiB' for memory, 'cores'/'m' for CPU, 'J'/'kJ' for energy, 'W' for power, etc."
+        description="The unit of measurement for y-axis values after conversion. Use short, readable formats: 'MiB'/'GiB' for memory, 'cores'/'m' for CPU, 'J'/'kJ' for energy, 'W' for power, etc."
+    )
+    scaler: float = Field(
+        default=1.0,
+        description="The scaling factor to convert from raw data values to display unit. For example: bytes->MiB use 1/(1024*1024), cores->millicores use 1000, bytes->GiB use 1/(1024*1024*1024)."
     )
     chart_title: str = Field(
         description="Descriptive title for the chart that explains what is being visualized."
@@ -73,7 +77,16 @@ def render_recharts(data: RechartDataCollection) -> str:
     The chart data is passed to the frontend through tool call parameters, this function returns a status message.
     """
     
-    logger.info(f"Rendering {len(data.charts)} chart(s)")
+    logger.info(f"render_recharts called with {len(data.charts)} chart(s)")
+    
+    # Log the input data structure for debugging
+    for i, chart in enumerate(data.charts):
+        logger.debug(f"Chart {i+1} fields: {list(chart.__dict__.keys())}")
+        if hasattr(chart, 'rechart_data'):
+            logger.debug(f"Chart {i+1} has rechart_data with {len(chart.rechart_data)} data points")
+        else:
+            logger.error(f"Chart {i+1} missing rechart_data field!")
+            logger.error(f"Chart {i+1} available fields: {list(chart.__dict__.keys())}")
     
     # Validate chart data
     valid_charts = 0
@@ -100,13 +113,17 @@ def render_recharts(data: RechartDataCollection) -> str:
             
             # Check if x_axis_key exists in data
             if chart.x_axis_key not in sample_point:
-                logger.warning(f"Chart {i+1}: x_axis_key '{chart.x_axis_key}' not found in data")
+                logger.warning(f"Chart {i+1}: x_axis_key '{chart.x_axis_key}' not found in data. Available keys: {list(sample_point.keys())}")
                 continue
             
             # Check if y_axis_keys exist in data  
             missing_keys = [key for key in chart.y_axis_keys if key not in sample_point]
             if missing_keys:
-                logger.warning(f"Chart {i+1}: y_axis_keys {missing_keys} not found in data")
+                logger.warning(f"Chart {i+1}: y_axis_keys {missing_keys} not found in data. Available keys: {list(sample_point.keys())}")
+                # Log all data points to see if keys exist in other points
+                logger.info(f"Chart {i+1}: All data points structure:")
+                for idx, point in enumerate(chart.rechart_data[:3]):  # Show first 3 points
+                    logger.info(f"  Point {idx+1}: {list(point.keys())}")
                 continue
             
             valid_charts += 1

@@ -55,7 +55,27 @@ async def chart_node(state: State, config: RunnableConfig):
                 tool_messages.append(tool_message)
                 
             except Exception as e:
+                # Enhanced error logging with detailed debugging info
+                import json
                 logger.error(f"Chart tool execution failed: {e}")
+                logger.error(f"Tool name: {tool_name}")
+                logger.error(f"Tool call ID: {tool_call_id}")
+                logger.error(f"Tool args keys: {list(tool_args.keys()) if tool_args else 'None'}")
+                
+                # Log the full tool args structure for debugging
+                try:
+                    logger.error(f"Full tool args: {json.dumps(tool_args, indent=2)}")
+                except Exception:
+                    logger.error(f"Tool args (raw): {tool_args}")
+                
+                # Check for specific validation errors
+                if "validation error" in str(e).lower():
+                    logger.error("🚨 VALIDATION ERROR DETECTED:")
+                    if "rechart_data" in str(e):
+                        logger.error("❌ Missing 'rechart_data' field - AI model forgot to include actual data array!")
+                        logger.error("💡 The AI model needs to transform Prometheus metrics into rechart_data array")
+                    logger.error(f"Error details: {str(e)}")
+                
                 error_message = ToolMessage(
                     content=f"Error executing {tool_name}: {str(e)}",
                     tool_call_id=tool_call_id,

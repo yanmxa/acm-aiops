@@ -8,6 +8,10 @@ from copilotkit.integrations.fastapi import add_fastapi_endpoint
 
 # from agent.graphs.router_graph import router_graph
 from agent.federated_learning.monitoring.workflow import federated_monitoring_graph
+from agent.utils.session_config import create_session_config
+from agent.utils.logging_config import get_logger
+
+logger = get_logger("main")
 
 app = FastAPI()
 

@@ -26,12 +26,7 @@ const TextMessageRender: React.FC<RenderMessageProps> = ({ message }: any) => {
     // User messages - special bubble style
     return (
       <div className="w-full py-4 px-6">
-        <div className="group flex items-start gap-4 flex-row-reverse">
-          {/* User Avatar */}
-          <div className="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center bg-blue-500 text-white">
-            <User size={20} />
-          </div>
-
+        <div className="group flex items-start gap-4 justify-end">
           {/* User Message Content */}
           <div className="flex-1 max-w-[85%] text-right">
             {/* Role Label */}
@@ -43,7 +38,8 @@ const TextMessageRender: React.FC<RenderMessageProps> = ({ message }: any) => {
             <div className="relative inline-block max-w-full text-sm bg-blue-500 text-white rounded-2xl rounded-br-md px-4 py-3">
               <div className="markdown-body" ref={markdownRef} style={{
                 background: 'transparent',
-                color: 'white'
+                color: 'white',
+                textAlign: 'left'
               }}>
                 <ReactMarkdown
                   remarkPlugins={[remarkGfm]}
@@ -70,6 +66,11 @@ const TextMessageRender: React.FC<RenderMessageProps> = ({ message }: any) => {
                 </ReactMarkdown>
               </div>
             </div>
+          </div>
+
+          {/* User Avatar */}
+          <div className="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center bg-blue-500 text-white">
+            <User size={20} />
           </div>
         </div>
       </div>

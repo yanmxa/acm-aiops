@@ -2,12 +2,12 @@
 import React, { useState } from "react";
 
 import { SatelliteDish, CheckCircle, Circle, Activity } from "lucide-react";
-import { Progress } from '../lib/agent_state';
+import { Node } from '../lib/agent_state';
 
 interface ProgressBarProps {
   status: string;
   label?: string;
-  progress?: Progress;
+  progress?: Node[];
 }
 
 // Remove hardcoded NODE_LABELS since we get this info from backend
@@ -35,7 +35,7 @@ export default function ProgressBar({
     );
   }
 
-  const { nodes } = progress;
+  const nodes = progress;
   
   // Calculate progress percentage based on completed nodes
   const completedCount = nodes.filter(node => node.status === "completed").length;

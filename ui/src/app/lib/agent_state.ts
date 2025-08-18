@@ -6,13 +6,9 @@ export interface Node {
   message: string;
 }
 
-export interface Progress {
-  nodes: Node[];
-}
-
 export interface State {
   query: string;
-  progress?: Progress;
+  progress?: Node[];
 }
 
 
@@ -57,8 +53,14 @@ export const RechartParameters = [
         {
           name: "unit",
           type: "string",
-          description: "Unit of measurement for y-axis values (e.g., 'MiB', 'GiB').",
+          description: "Unit of measurement for y-axis values after conversion (e.g., 'MiB', 'GiB').",
           required: true,
+        },
+        {
+          name: "scaler",
+          type: "number",
+          description: "Scaling factor to convert raw data values to display unit. Default: 1.0.",
+          required: false,
         },
         {
           name: "chart_title",

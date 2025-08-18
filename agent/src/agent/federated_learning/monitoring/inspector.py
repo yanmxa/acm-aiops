@@ -5,7 +5,8 @@ Inspector Node - Generates PromQL queries based on user queries
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_core.messages.utils import trim_messages, count_tokens_approximately
-from langchain_core.runnables import RunnableConfig
+from langchain_core.runnables import RunnableConfig        
+from langchain_groq import ChatGroq
 import os
 from datetime import datetime, timezone
 
@@ -16,13 +17,19 @@ load_dotenv()
 from .state import State
 from agent.tools.mcp_tool import get_mcp_tools
 from agent.utils.logging_config import get_logger
-from .state import update_node, complete_node, reset_progress
+from agent.utils.model_factory import create_llm
+from .state import update_node, complete_node, reset_progress, clear_all_state
+from agent.utils.session_config import log_session_activity, get_session_info
 
 logger = get_logger("inspector")
 
 async def inspector_node(state: State, config: RunnableConfig = None) -> State:
     logger.debug("=== Inspector node starting ===")
     logger.info(f"Inspector Input state has {len(state.get('messages', []))} messages")
+    
+    # Log session activity
+    if config:
+        log_session_activity(config, "Starting inspector node", "inspector")
 
     messages = state.get("messages", [])
     if not messages:
@@ -35,17 +42,17 @@ async def inspector_node(state: State, config: RunnableConfig = None) -> State:
     if isinstance(last_message, HumanMessage) and hasattr(last_message, "content"):
         user_query = last_message.content
         
-        # # Handle /clear command
-        # if user_query.strip() == "/clear":
-        #     logger.info("Processing /clear command")
-        #     # Clear messages and progress completely
-        #     await reset_progress(state, config)
-        #     # Return completely new state to bypass add_messages
-        #     state = await clear_all_state(state, config)
+        # Handle /clear command
+        if user_query.strip() == "/clear":
+            logger.info("Processing /clear command")
+            # Clear messages and progress completely
+            await reset_progress(state, config)
+            # Return completely new state to bypass add_messages
+            state = await clear_all_state(state, config)
             
-        #     return {
-        #       **state,
-        #     }
+            return {
+              **state,
+            }
         
         # Reset progress for new user query
         await reset_progress(state, config)
@@ -60,13 +67,8 @@ async def inspector_node(state: State, config: RunnableConfig = None) -> State:
         logger.debug(f"Retrieved {len(tools)} MCP tools")
 
         model_name = os.getenv("OPENAI_MODEL", "gpt-4o")
-        
-        llm = ChatOpenAI(
-            model=model_name,
-            temperature=0.1,
-            api_key=os.getenv("OPENAI_API_KEY"),
-            streaming=True,
-        ).bind_tools(tools)
+        llm = create_llm(model_name=model_name, temperature=0.1, streaming=True)
+        llm = llm.bind_tools(tools)
 
         utc_time = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
         print("current time", utc_time)
@@ -105,22 +107,34 @@ async def inspector_node(state: State, config: RunnableConfig = None) -> State:
                 "model": model_name
             }
         
-        # Update completion info with PromQL queries if any tool calls were made
+        # Update completion info based on tool calls made
         if hasattr(response, 'tool_calls') and response.tool_calls:
-            queries = []
+            prom_calls = []
+            kubectl_calls = []
+            other_calls = []
+            
             for tool_call in response.tool_calls:
-                if tool_call.get("name") in ["prom_query", "prom_range"]:
+                tool_name = tool_call.get("name", "")
+                if tool_name in ["prom_query", "prom_range"]:
                     query = tool_call.get("args", {}).get("query", "")
                     if query:
-                        queries.append(query)
+                        prom_calls.append(query)
+                elif tool_name == "kubectl":
+                    kubectl_calls.append(tool_call)
+                else:
+                    other_calls.append(tool_name)
             
-            if queries:
-                completion_msg = f"PromQL: {', '.join(queries[:2])}" + ("..." if len(queries) > 2 else "")
-                # Note: Can't await in sync function, will be handled by workflow
+            # Generate completion message based on what tools were called
+            if prom_calls:
+                completion_msg = f"PromQL: {', '.join(prom_calls[:2])}" + ("..." if len(prom_calls) > 2 else "")
+            elif kubectl_calls:
+                completion_msg = f"Generated {len(kubectl_calls)} kubectl command(s)"
+            elif other_calls:
+                completion_msg = f"Called tools: {', '.join(other_calls)}"
             else:
                 completion_msg = "Query analysis completed"
         else:
-            completion_msg = "No monitoring data needed"
+            completion_msg = "Query analysis completed"
         
         # Update inspector completion immediately
         logger.debug(f"Inspector calling update_node_completion with message: {completion_msg}")
@@ -169,8 +183,8 @@ Instructions:
       - Condition: service_name="kepler"
       - Includes properties in response: cluster_name, pod_name, container_name, container_namespace, job, instance
       - Split by mode:
-        * mode="idle": idle energy consumption
-        * mode="dynamic": dynamic energy consumption under workload
+        * mode="idle": idle energy consumption(filter that)
+        * mode="dynamic": dynamic energy consumption under workload(only use this one)
 
 3. Always preserve the original Prometheus metric metadata and value array in query results.
 
@@ -200,7 +214,9 @@ Example 2. prom_range - Query the CPU usage of the pod "federated-learning-sampl
    - Generate the correct PromQL query
    - For range queries, ALWAYS use UTC time format in ISO 8601 (e.g., '2025-08-14T10:30:15Z')
    - Call the appropriate tool and return structured results
-   - Always try within 1 tool call, don't call multiple tools with the similar meaning. 
+   - Don't call multiple tools with the similar meaning.
+
+**TOOL CALL RULE**: When calling any tool, do NOT include any content in the message. Only call the tool with parameters - leave message content empty. 
 
 6. Time format guidelines:
    - ALWAYS use UTC time zone for all time calculations
@@ -225,7 +241,9 @@ You have two main roles when working with federated learning in the Open Cluster
 
 ---
 
-### **1. Create a Federated Learning instance**
+### **1. Create/Update/Apply/Delete a Federated Learning instance**
+
+**Use kubectl Tool**: The command and yaml can only have one exists. Use yaml only when you what to update/apply the resource
 
 A federated learning instance is defined by a `FederatedLearning` custom resource.
 Example:

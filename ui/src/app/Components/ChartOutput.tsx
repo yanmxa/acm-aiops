@@ -18,6 +18,7 @@ interface RechartOutputProps {
     x_axis_key: string;
     y_axis_keys: string[];
     unit: string;
+    scaler?: number;
     chart_title: string;
   };
 }
@@ -25,23 +26,17 @@ interface RechartOutputProps {
 const truncateLabel = (label: string, maxLength = 15) =>
   label.length > maxLength ? `${label.slice(0, maxLength)}…` : label;
 
-const formatTimestamp = (name: string, index: number, all: any[]) => {
-  const date = new Date(name);
-  const prevDate = index > 0 ? new Date(all[index - 1]?.name) : null;
-
-  const isNewDay = !prevDate || date.toDateString() !== prevDate.toDateString();
-
-  if (isNewDay) {
-    return `${date.toLocaleDateString(undefined, {
-      month: "short",
-      day: "numeric",
-    })} ${date.toLocaleTimeString(undefined, {
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: false,
-    })}`;
+const formatTimestamp = (timestamp: string | number) => {
+  // Convert Unix timestamp to milliseconds if it's a number
+  const timeValue = typeof timestamp === 'number' ? timestamp * 1000 : timestamp;
+  const date = new Date(timeValue);
+  
+  // Check if date is valid
+  if (isNaN(date.getTime())) {
+    return String(timestamp);
   }
 
+  // Format as time only for most cases, with date for first entry or day changes
   return date.toLocaleTimeString(undefined, {
     hour: "2-digit",
     minute: "2-digit",
@@ -50,11 +45,22 @@ const formatTimestamp = (name: string, index: number, all: any[]) => {
 };
 
 const RechartOutput: React.FC<RechartOutputProps> = ({ chart }) => {
-  const { rechart_data, rechart_type, x_axis_key, y_axis_keys, unit, chart_title } = chart;
+  const { rechart_data, rechart_type, x_axis_key, y_axis_keys, unit, scaler = 1.0, chart_title } = chart;
 
   if (!Array.isArray(rechart_data) || rechart_data.length === 0) {
     return <p className="text-xs text-gray-500">No chart data available.</p>;
   }
+
+  // Apply scaler to numeric values for y-axis keys
+  const scaledData = rechart_data.map(item => {
+    const scaledItem = { ...item };
+    y_axis_keys.forEach(key => {
+      if (typeof item[key] === 'number') {
+        scaledItem[key] = item[key] * scaler;
+      }
+    });
+    return scaledItem;
+  });
 
   return (
     <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-4">
@@ -75,7 +81,7 @@ const RechartOutput: React.FC<RechartOutputProps> = ({ chart }) => {
         <ResponsiveContainer width="100%" height="100%">
         {rechart_type === "BarChart" ? (
           <BarChart
-            data={rechart_data}
+            data={scaledData}
             margin={{ top: 20, right: 30, left: 60, bottom: 80 }}
           >
             <CartesianGrid strokeDasharray="3 3" />
@@ -100,22 +106,32 @@ const RechartOutput: React.FC<RechartOutputProps> = ({ chart }) => {
           </BarChart>
         ) : (
           <LineChart
-            data={rechart_data}
+            data={scaledData}
             margin={{ top: 20, right: 30, left: 60, bottom: 80 }}
           >
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis
               dataKey={x_axis_key}
-              tickFormatter={(label, index) =>
-                formatTimestamp(label, index, rechart_data)
-              }
+              tickFormatter={(label) => formatTimestamp(label)}
               textAnchor="end"
               angle={-45}
-              interval={rechart_data.length > 48 ? 1 : 0}
+              interval={scaledData.length > 48 ? 1 : 0}
               height={60}
             />
             <YAxis unit={unit} width={80} />
-            <Tooltip />
+            <Tooltip 
+              labelFormatter={(label) => {
+                // Format timestamp for tooltip
+                if (x_axis_key === 'timestamp') {
+                  const timeValue = typeof label === 'number' ? label * 1000 : label;
+                  const date = new Date(timeValue);
+                  if (!isNaN(date.getTime())) {
+                    return date.toLocaleString();
+                  }
+                }
+                return label;
+              }}
+            />
             {y_axis_keys.map((key, index) => (
               <Line
                 key={key}
@@ -143,6 +159,7 @@ interface RechartChartData {
   x_axis_key: string;
   y_axis_keys: string[];
   unit: string;
+  scaler?: number;
   chart_title: string;
 }
 
@@ -150,6 +167,20 @@ interface RechartCollectionProps {
   charts: RechartChartData[];
 }
 
+
+const hasValidData = (chart: RechartChartData): boolean => {
+  if (!Array.isArray(chart.rechart_data) || chart.rechart_data.length === 0) {
+    return false;
+  }
+  
+  // Check if any data point has valid values for y-axis keys
+  return chart.rechart_data.some(dataPoint => 
+    chart.y_axis_keys.some(key => {
+      const value = dataPoint[key];
+      return value !== null && value !== undefined && value !== '';
+    })
+  );
+};
 
 const isValidChart = (chart: any): chart is RechartChartData => {
   return (
@@ -161,7 +192,9 @@ const isValidChart = (chart: any): chart is RechartChartData => {
     Array.isArray(chart.y_axis_keys) &&
     chart.y_axis_keys.length > 0 &&
     typeof chart.unit === "string" &&
-    typeof chart.chart_title === "string"
+    (chart.scaler === undefined || typeof chart.scaler === "number") &&
+    typeof chart.chart_title === "string" &&
+    hasValidData(chart)  // Add check for valid data
   );
 };
 

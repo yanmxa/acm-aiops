@@ -36,7 +36,8 @@ def print_messages(messages):
         elif message_type == "ToolMessage":
             emoji = "🔧"
             color = "\033[93m"  # Yellow
-            prefix = "TOOL"
+            tool_name = getattr(message, 'name', 'unknown')
+            prefix = f"TOOL[{tool_name}]"
         elif message_type == "RemoveMessage":
             emoji = "🗑️"
             color = "\033[91m"  # Red
@@ -82,8 +83,8 @@ def print_messages(messages):
             print(f"\n{' ' * 12}🔧 Tools: {', '.join(tool_names)}")
         
         # Show tool info for ToolMessage
-        if message_type == "ToolMessage" and hasattr(message, 'name'):
-            print(f"\n{' ' * 12}🏷️  Tool: {message.name}")
+        # if message_type == "ToolMessage" and hasattr(message, 'name'):
+        #     print(f"{' ' * 12}🏷️  Parameters: {message.name}")
     
     print(f"\n{'🏁' * 20}")
     print("✅ End of conversation")

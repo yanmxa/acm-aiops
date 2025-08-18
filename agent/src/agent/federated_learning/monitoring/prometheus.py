@@ -44,19 +44,23 @@ async def prometheus_node(state: State, config: RunnableConfig):
     # Update messages with tool responses
     updated_messages = messages + tool_messages
     
-    # Count successful tool executions and estimate data points
+    # Count successful tool executions and metrics details
     successful_tools = count_successful_tools(tool_messages)
     data_points = 0
+    total_series = 0
     
-    # Calculate actual data points from Prometheus responses
+    # Calculate actual metrics from Prometheus responses
     for msg in tool_messages:
         if msg.name in ["prom_query", "prom_range"] and not msg.content.startswith("Error"):
             import json
             try:
-                # Parse JSON response to count actual data points
+                # Parse JSON response to count series and data points
                 response_data = json.loads(msg.content)
                 if response_data.get("status") == "success":
                     result = response_data.get("data", {}).get("result", [])
+                    series_count = len(result)
+                    total_series += series_count
+                    
                     for series in result:
                         if "values" in series:
                             # Range query: count all time series values
@@ -75,8 +79,12 @@ async def prometheus_node(state: State, config: RunnableConfig):
         # For kubectl commands, provide more specific completion message
         completion_msg = f"Executed {len(kubectl_tools)} kubectl command(s) successfully"
     elif successful_tools > 0:
-        completion_msg = (f"Executed {successful_tools} queries, retrieved {data_points} data points" 
-                         if data_points > 0 else f"Executed {successful_tools} queries successfully")
+        if data_points > 0 and total_series > 0:
+            completion_msg = f"Executed {successful_tools} queries, retrieved {total_series} series with {data_points} data points"
+        elif data_points > 0:
+            completion_msg = f"Executed {successful_tools} queries, retrieved {data_points} data points"
+        else:
+            completion_msg = f"Executed {successful_tools} queries successfully"
     else:
         completion_msg = "No data retrieved"
     
