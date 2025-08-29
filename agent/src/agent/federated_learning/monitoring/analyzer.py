@@ -8,7 +8,6 @@ from datetime import datetime, timezone
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import SystemMessage, HumanMessage, ToolMessage
 from langchain_core.runnables import RunnableConfig
-from langchain_groq import ChatGroq
 
 from .state import State
 from agent.utils.logging_config import get_logger

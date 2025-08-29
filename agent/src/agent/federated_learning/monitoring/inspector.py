@@ -6,7 +6,6 @@ from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_core.messages.utils import trim_messages, count_tokens_approximately
 from langchain_core.runnables import RunnableConfig        
-from langchain_groq import ChatGroq
 import os
 from datetime import datetime, timezone
 
