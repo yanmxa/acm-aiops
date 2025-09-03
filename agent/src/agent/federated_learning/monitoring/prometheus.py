@@ -1,8 +1,9 @@
 
+import time
 from langchain_core.messages import ToolMessage
 from langchain_core.runnables import RunnableConfig
 from agent.federated_learning.monitoring.state import State
-from agent.tools.mcp_tool import sync_get_mcp_tools
+from agent.tools.mcp_tool import get_mcp_tools, get_mcp_tools_with_persistent_sessions
 from agent.tools.render_recharts import render_recharts
 from agent.utils.logging_config import get_logger
 from .state import update_node, complete_node
@@ -12,6 +13,9 @@ logger = get_logger("prometheus")
 
 async def prometheus_node(state: State, config: RunnableConfig):
     """Simplified tool node for federated monitoring workflow"""
+    start_time = time.time()
+    logger.info(f"[PERF] ⚡ Prometheus node started")
+    
     messages = state.get("messages", [])
     if not messages:
         return state
@@ -33,12 +37,25 @@ async def prometheus_node(state: State, config: RunnableConfig):
         await update_node(state, "tool", "active", f"Executing PromQL queries: {tool_names_str}" if tool_names_str else "Executing queries...", config)
     
     # Get available tools
-    tools = sync_get_mcp_tools()
+    tools_start = time.time()
+    logger.debug(f"[PERF] Starting MCP tools retrieval")
+    
+    # Use persistent sessions to avoid server restarts
+    tools = await get_mcp_tools_with_persistent_sessions()
     tool_map = {tool.name: tool for tool in tools}
     tool_map["render_recharts"] = render_recharts
     
+    tools_end = time.time()
+    logger.debug(f"[PERF] MCP tools retrieval completed in {tools_end - tools_start:.3f}s ({len(tools)} tools)")
+    
     # Execute all tool calls
+    exec_start = time.time()
+    logger.info(f"[PERF] 🚀 Starting {len(last_message.tool_calls)} tool execution(s) in parallel")
+    
     tool_messages = await execute_tool_calls(last_message.tool_calls, tool_map, config)
+    
+    exec_end = time.time()
+    logger.info(f"[PERF] ✅ Tool execution completed in {exec_end - exec_start:.3f}s")
     
     
     # Update messages with tool responses
@@ -89,6 +106,10 @@ async def prometheus_node(state: State, config: RunnableConfig):
         completion_msg = "No data retrieved"
     
     await complete_node(state, "tool", completion_msg, config)
+    
+    end_time = time.time()
+    total_time = end_time - start_time
+    logger.info(f"[PERF] 🎯 Prometheus node completed in {total_time:.3f}s")
     
     return {
         **state,

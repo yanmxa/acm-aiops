@@ -184,6 +184,9 @@ Instructions:
       - Split by mode:
         * mode="idle": idle energy consumption(filter that)
         * mode="dynamic": dynamic energy consumption under workload(only use this one)
+   d) Customized Federated Learning Metrics, like training 'loss', 'accuracy', etc.
+      - Each one of the metrics contain the cluster_name, round and pod_name
+      - The customized metrics are time series metrics, default get the is the last 7 hours, and interval is 2 minutes
 
 3. Always preserve the original Prometheus metric metadata and value array in query results.
 
@@ -306,9 +309,18 @@ A federated learning deployment consists of:
   * Pod name format: `<federated-learning-instance-name>-client-*`
   * Example: For the instance `federated-learning-sample`, the client pod prefix in a managed cluster is `federated-learning-sample-client-*`.
 
-**When a user query involves federated learning metrics:**
+* **When a user query involves federated learning metrics:**
 
 * Retrieve metrics for both the **server** (hub cluster) and **clients** (managed clusters).
 * Filter metrics using `pod` or `pod_name` labels that match the above naming patterns.
 
+* Sample user query: Get the training metrics 'loss' of the instance "federated-learning-sample"
+
+Analysis:
+  - The metrics name is "loss", the user dont specify the time range and interval, so you should use the default value.
+  - Should have 2 tool calls, one for the server, one for the client. 
+
+Tool calls:
+  - tool call 1:  server pod_name name is federated-learning-sample-server-*, the time range is the last 7 hours, and interval is 2 minutes
+  - tool call 2:  client pod_name name is federated-learning-sample-client-*, the time range is the last 7 hours, and interval is 2 minutes
 """

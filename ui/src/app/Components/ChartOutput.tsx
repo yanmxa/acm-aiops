@@ -26,6 +26,26 @@ interface RechartOutputProps {
 const truncateLabel = (label: string, maxLength = 15) =>
   label.length > maxLength ? `${label.slice(0, maxLength)}…` : label;
 
+// Curated color palette for better visual alignment and aesthetics
+const CHART_COLORS = [
+  '#3b82f6', // Blue
+  '#ef4444', // Red  
+  '#10b981', // Emerald
+  '#f59e0b', // Amber
+  '#8b5cf6', // Violet
+  '#06b6d4', // Cyan
+  '#f97316', // Orange
+  '#84cc16', // Lime
+  '#ec4899', // Pink
+  '#6366f1', // Indigo
+  '#14b8a6', // Teal
+  '#f43f5e', // Rose
+];
+
+const getChartColor = (index: number): string => {
+  return CHART_COLORS[index % CHART_COLORS.length];
+};
+
 const formatTimestamp = (timestamp: string | number) => {
   // Convert Unix timestamp to milliseconds if it's a number
   const timeValue = typeof timestamp === 'number' ? timestamp * 1000 : timestamp;
@@ -99,7 +119,7 @@ const RechartOutput: React.FC<RechartOutputProps> = ({ chart }) => {
               <Bar
                 key={key}
                 dataKey={key}
-                fill={`hsl(${(i * 60) % 360}, 70%, 50%)`}
+                fill={getChartColor(i)}
                 radius={[4, 4, 0, 0]}
               />
             ))}
@@ -137,7 +157,7 @@ const RechartOutput: React.FC<RechartOutputProps> = ({ chart }) => {
                 key={key}
                 type="monotone"
                 dataKey={key}
-                stroke={`hsl(${(index * 60) % 360}, 70%, 50%)`}
+                stroke={getChartColor(index)}
                 strokeWidth={2}
                 dot={false}
               />
