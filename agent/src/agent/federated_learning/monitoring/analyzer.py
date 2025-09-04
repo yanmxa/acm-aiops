@@ -201,7 +201,7 @@ For LineChart:
 Using x_axis_key: timestamp, y_axis_keys: [local-cluster:foo-server-vkkdf, cluster1:foo-client-q5pls, cluster2:foo-client-hkc9j]'
 
 **For the Customized Federated Learning Metrics, like training 'loss', 'accuracy', etc.** 
-  - The x_axis_key is the round, the y_axis_keys is the value the metrics
+  - The x_axis_key is the **round**! the y_axis_keys is the value the metrics, if x_axis_key is not round, you should use the round as the x_axis_key
   - For there are multiple value in a round, you should use the first one as the y value
   - If these values are too similar across clusters, you should use the bar chart to visualize the metrics, Each cluster should have a bar, You should try to put all the bar into one chart for comparison
   - If the values are too different across cluster, you should use the line chart to visualize the metrics, Each cluster should have a line, You should try to put all the line into one chart for comparison

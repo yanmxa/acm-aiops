@@ -158,6 +158,7 @@ async def get_persistent_session(server_name: str, client: MultiServerMCPClient)
 async def close_persistent_sessions():
     """Close all persistent MCP sessions with detailed statistics"""
     import time
+    import asyncio
     global _active_sessions, _session_locks, _session_stats
     
     # We don't need locks during shutdown as it's a single operation
@@ -168,13 +169,25 @@ async def close_persistent_sessions():
     logger.info(f"[PERF] Closing {len(_active_sessions)} persistent sessions...")
     
     current_time = time.time()
-    for server_name, session_data in _active_sessions.items():
+    sessions_to_close = list(_active_sessions.items())  # Create a copy to avoid mutation during iteration
+    
+    for server_name, session_data in sessions_to_close:
         try:
             session_age = current_time - session_data['created_at']
             last_used_ago = current_time - session_data['last_used']
             
             logger.info(f"[PERF] Closing session '{server_name}': age={session_age:.1f}s, used={session_data['use_count']} times, last_used={last_used_ago:.1f}s ago")
-            await session_data['context'].__aexit__(None, None, None)
+            
+            # Try to close gracefully with timeout
+            try:
+                await asyncio.wait_for(
+                    session_data['context'].__aexit__(None, None, None), 
+                    timeout=5.0  # 5 second timeout for each session
+                )
+            except asyncio.TimeoutError:
+                logger.warning(f"[PERF] Session '{server_name}' close timed out after 5s, continuing...")
+            except asyncio.CancelledError:
+                logger.warning(f"[PERF] Session '{server_name}' close was cancelled, continuing...")
             
         except Exception as e:
             logger.error(f"Error closing session for {server_name}: {e}")

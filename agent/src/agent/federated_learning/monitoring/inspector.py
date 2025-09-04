@@ -70,7 +70,8 @@ async def inspector_node(state: State, config: RunnableConfig = None) -> State:
         llm = llm.bind_tools(tools)
 
         utc_time = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-        print("current time", utc_time)
+        logger.info(f"Inspector in the current time[UTC]: {utc_time}")
+
 
         system_prompt = INSPECTOR_PROMPT.format(
           current_time=utc_time, 
@@ -186,7 +187,7 @@ Instructions:
         * mode="dynamic": dynamic energy consumption under workload(only use this one)
    d) Customized Federated Learning Metrics, like training 'loss', 'accuracy', etc.
       - Each one of the metrics contain the cluster_name, round and pod_name
-      - The customized metrics are time series metrics, default get the is the last 7 hours, and interval is 2 minutes
+      - The customized metrics are time series metrics, default get the is the last 7 hours from the current time, and interval is 2 minutes
 
 3. Always preserve the original Prometheus metric metadata and value array in query results.
 
@@ -233,7 +234,7 @@ Example 2. prom_range - Query the CPU usage of the pod "federated-learning-sampl
    
 {federated_learning_prompt}
    
-[Current UTC Time: {current_time}]
+[Current Time: {current_time}]
 """
 
 FEDERATED_LEARNING_PROMPT = """
